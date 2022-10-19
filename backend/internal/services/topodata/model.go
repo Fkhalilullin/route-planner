@@ -1,14 +1,5 @@
 package topodata
 
-import "github.com/Fkhalilullin/route-planner/internal/route"
-
-type Elevation struct {
-	Value float64     `json:"value,omitempty"`
-	Point route.Point `json:"point"`
-}
-
-type Elevations []Elevation
-
 type elevationResponse struct {
 	Results []struct {
 		Dataset   string  `json:"dataset"`

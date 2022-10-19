@@ -3,13 +3,14 @@ package topodata
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Fkhalilullin/route-planner/internal/route"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/Fkhalilullin/route-planner/internal/models"
 )
 
 type ElevationProvider interface {
-	GetElevationPoints(lat float64, lon float64) (Elevations, error)
+	GetElevationPoints(coordinateList string) (models.Elevations, error)
 }
 
 type service struct {
@@ -22,16 +23,16 @@ func NewService() *service {
 
 const (
 	endpoint                  = "https://api.opentopodata.org/v1"
-	pathFormatElevationPoints = "/srtm90m?locations=%f,%f"
+	pathFormatElevationPoints = "/srtm90m?locations=%s"
 )
 
-func (s *service) GetElevationPoints(lat float64, lon float64) (Elevation, error) {
-	path := fmt.Sprintf(pathFormatElevationPoints, lat, lon)
+func (s *service) GetElevationPoints(coordinateList string) (models.Elevations, error) {
+	path := fmt.Sprintf(pathFormatElevationPoints, coordinateList)
 	u := endpoint + path
 
 	res, err := http.Get(u)
 	if err != nil {
-		return Elevation{}, fmt.Errorf("opentopodata.GetElevationPoints failed http GET: %s", err)
+		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed http GET: %s", err)
 	}
 
 	defer func() {
@@ -40,33 +41,30 @@ func (s *service) GetElevationPoints(lat float64, lon float64) (Elevation, error
 
 	bodyRaw, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return Elevation{}, fmt.Errorf("opentopodata.GetElevationPoints failed reading body: %s", err)
+		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed reading body: %s", err)
 	}
 
 	var resp elevationResponse
 	if err = json.Unmarshal(bodyRaw, &resp); err != nil {
-		return Elevation{}, fmt.Errorf("opentopodata.GetElevationPoints failed encoding body: %s", err)
+		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed encoding body: %s", err)
 	}
 
-	return ToElevation(resp), nil
+	return ToElevations(resp), nil
 }
 
-func ToElevation(resp elevationResponse) Elevation {
-	var (
-		value float64
-		point route.Point
-	)
+func ToElevations(resp elevationResponse) models.Elevations {
+	var elevations models.Elevations
 
 	for _, r := range resp.Results {
-		value = r.Elevation
-		point = route.Point{
-			Lat: r.Location.Lat,
-			Lon: r.Location.Lng,
-		}
+		elevations = append(elevations, models.Elevation{
+			Value: r.Elevation,
+			Point: models.Point{
+				Lat: r.Location.Lat,
+				Lon: r.Location.Lng,
+			},
+		})
+
 	}
 
-	return Elevation{
-		Value: value,
-		Point: point,
-	}
+	return elevations
 }

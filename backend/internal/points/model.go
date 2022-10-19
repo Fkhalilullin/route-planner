@@ -1,10 +1,8 @@
 package points
 
-import "github.com/Fkhalilullin/route-planner/internal/route"
-
-type Elevation struct {
-	Value int64       `json:"value,omitempty"`
-	Point route.Point `json:"point"`
-}
-
-type Elevations []Elevation
+const (
+	LatTopLeftPoint  = "top_left_lat"
+	LonTopLeftPoint  = "top_left_lon"
+	LatBotRightPoint = "bot_right_lat"
+	LonBotRightPoint = "bot_right_lon"
+)
