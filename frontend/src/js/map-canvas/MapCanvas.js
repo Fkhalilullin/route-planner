@@ -56,30 +56,36 @@ class MapCanvas {
     }
 
     enableMouseEvents() {
-        var dragging = false;         // Dragging or not
+        var mouseDown = false;
         var lastX = -1., lastY = -1.;   // Last position of the mouse
+        var clickX = -1., clickY = -1.;   // Last position of the mouse
       
         let mapCanvas = this
         this.canvas.onmousedown = function(ev) {   // Mouse is pressed
-            console.log("pressed")
-            var x = ev.clientX, y = ev.clientY;
+            clickX = ev.clientX, clickY = ev.clientY;
             
-            // Start dragging if a moue is in <canvas>
+            // Start dragging if a mouse is in <canvas>
             var rect = ev.target.getBoundingClientRect();
-            if (rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom) {
-                lastX = x; lastY = y;
-                console.log("dw:", x, y)
-                dragging = true;
+            if (rect.left <= clickX && clickX < rect.right && rect.top <= clickY && clickY < rect.bottom) {
+                lastX = clickX; lastY = clickY;
+                mouseDown = true;
             }
         };
     
         this.canvas.onmouseup = function(ev) {
-            dragging = false
+            const x = ev.clientX, y = ev.clientY;
+            mouseDown = false
+            if (lastX - clickX == 0. && lastY - clickY == 0.) {
+                console.log("click")
+                console.log(document.activeElement)
+            }
+            document.body.style.cursor = 'default';
         }; // Mouse is released
     
         this.canvas.onmousemove = function(ev) { // Mouse is moved
             const x = ev.clientX, y = ev.clientY;
-            if (dragging) {
+            if (mouseDown) {
+                document.body.style.cursor = 'grabbing';
                 const dx = (x - lastX);
                 const dy = (y - lastY);
     
@@ -97,5 +103,6 @@ class MapCanvas {
             }
             lastX = x, lastY = y;
         };
+
     }
 }
