@@ -31,6 +31,27 @@ class MapCanvas {
         })
     }
 
+    drawReliefMap(elevationRs) {
+        let verticesInfoArr = new Float32Array(elevationRs.elevationGrid.length * 7)
+        for (let i = 0; i < elevationRs.elevationGrid.length; ++i) {
+            let [r, g, b] = ColorUtils.getGradientColor(
+                '#ffffff', 
+                '#ff0000',
+                elevationRs.minElevation,
+                elevationRs.maxElevation,
+                elevationRs.elevationGrid[i].elevation)
+            verticesInfoArr[i * 7    ] = elevationRs.elevationGrid[i].location.lat
+            verticesInfoArr[i * 7 + 1] = elevationRs.elevationGrid[i].location.lon
+            verticesInfoArr[i * 7 + 2] = 50.
+            verticesInfoArr[i * 7 + 3] = r
+            verticesInfoArr[i * 7 + 4] = g
+            verticesInfoArr[i * 7 + 5] = b
+            verticesInfoArr[i * 7 + 6] = 1.
+        }
+        console.log(verticesInfoArr);
+        this.mapWebGLContext.drawPoints(verticesInfoArr)
+    }
+
     _convertCoordsToCanvas(geographicCoords, mapFragment) {
         const deltaLat = mapFragment.maxlat - mapFragment.minlat
         const deltaLon = mapFragment.maxlon - mapFragment.minlon
@@ -105,4 +126,5 @@ class MapCanvas {
         };
 
     }
+    
 }
