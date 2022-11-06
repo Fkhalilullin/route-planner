@@ -9,6 +9,7 @@ import (
 
 	"github.com/Fkhalilullin/route-planner/internal/config"
 	"github.com/Fkhalilullin/route-planner/internal/models"
+	"github.com/Fkhalilullin/route-planner/internal/services/osm"
 	"github.com/Fkhalilullin/route-planner/internal/services/topodata"
 )
 
@@ -19,6 +20,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	)
 
 	elevationService := topodata.NewService()
+	osmService := osm.NewService()
 
 	topLeftPoint, err := getTopLeftPoint(r)
 	if err != nil {
@@ -33,37 +35,43 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	topRightPoint := models.Point{
-		Lat: botRightPoint.Lat,
-		Lon: topLeftPoint.Lon,
+		Lat: topLeftPoint.Lat,
+		Lon: botRightPoint.Lon,
 	}
 
 	botLeftPoint := models.Point{
-		Lat: topLeftPoint.Lat,
-		Lon: botRightPoint.Lon,
+		Lat: botRightPoint.Lat,
+		Lon: topLeftPoint.Lon,
 	}
 
 	log.Printf("topLeftPoint = %v\nbotRightPoint = %v\ntopRightPoint = %v\nbotLeftPoint = %v\n",
 		topLeftPoint, botRightPoint, topRightPoint, botLeftPoint)
 
-	for lat := topLeftPoint.Lat; lat <= botRightPoint.Lat; lat += config.Step {
-		// TODO пропадает первое и последнее значение
-		coordinateList = ""
-		for lon := topLeftPoint.Lon; lon <= botLeftPoint.Lon; lon += config.Step {
+	var limiter int64
+	for lat := topLeftPoint.Lat; lat <= botLeftPoint.Lat; lat += config.Step {
+		for lon := topLeftPoint.Lon; lon <= topRightPoint.Lon; lon += config.Step {
 			coordinateList += fmt.Sprintf("%f,%f|", lat, lon)
-		}
-		// TODO подумать над оптимизацией
-		//temp, err := elevationService.GetElevationPoints(coordinateList)
-		//if err != nil {
-		//	log.Println("[GET/Points] can't get elevation points: ", err)
-		//}
-		//elevations = append(elevations, temp...)
-	}
 
-	elevations, err = elevationService.GetElevationPoints(coordinateList)
-	if err != nil {
-		log.Printf("[GET/Points] can't get elevation points: %w", err)
+			// TODO развернуть на докере
+			limiter++
+			if limiter == 100 {
+				temp, err := elevationService.GetElevationPoints(coordinateList)
+				if err != nil {
+					log.Println("[GET/Points] can't get elevation points: ", err)
+				}
+				elevations = append(elevations, temp...)
+
+				limiter = 0
+				coordinateList = ""
+			}
+		}
 	}
 	log.Printf("[GET/Points] count elevations points: %d", len(elevations))
+
+	osmService.GetTypePoints(osm.Box{
+		MinLon: topLeftPoint.Lon, MinLat: topLeftPoint.Lat,
+		MaxLon: botRightPoint.Lon, MaxLat: botRightPoint.Lat,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(elevations)

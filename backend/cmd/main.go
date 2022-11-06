@@ -21,10 +21,10 @@ func main() {
 		Methods("GET")
 
 	r.HandleFunc("/points", points.GetPoints).
-		Queries(points.LatTopLeftPoint, "{top_left_lat}",
-			points.LonTopLeftPoint, "{top_left_lon}",
-			points.LatBotRightPoint, "{bot_right_lat}",
-			points.LonBotRightPoint, "{bot_right_lon}").
+		Queries(points.LatTopLeftPoint, "{min_lat}",
+			points.LonTopLeftPoint, "{min_lon}",
+			points.LatBotRightPoint, "{max_lat}",
+			points.LonBotRightPoint, "{max_lon}").
 		Methods("GET")
 
 	log.Println("Server start")

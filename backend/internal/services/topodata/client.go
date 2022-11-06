@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/Fkhalilullin/route-planner/internal/models"
 )
@@ -14,39 +15,37 @@ type ElevationProvider interface {
 }
 
 type service struct {
-	elevationProvide ElevationProvider
+	elevationProvider ElevationProvider
 }
 
 func NewService() *service {
 	return &service{}
 }
 
-const (
-	endpoint                  = "https://api.opentopodata.org/v1"
-	pathFormatElevationPoints = "/srtm90m?locations=%s"
-)
+const endpoint = "https://api.opentopodata.org/v1/srtm90m"
+
+type ElevationRequest struct {
+	Locations string `json:"locations,omitempty"`
+}
 
 func (s *service) GetElevationPoints(coordinateList string) (models.Elevations, error) {
-	path := fmt.Sprintf(pathFormatElevationPoints, coordinateList)
-	u := endpoint + path
+	reqByte, err := json.Marshal(ElevationRequest{Locations: coordinateList})
+	reader := strings.NewReader(string(reqByte))
 
-	res, err := http.Get(u)
+	res, err := http.Post(endpoint, "application/json", reader)
 	if err != nil {
-		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed http GET: %s", err)
+		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed http GET: %w", err)
 	}
-
-	defer func() {
-		_ = res.Body.Close()
-	}()
+	defer res.Body.Close()
 
 	bodyRaw, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed reading body: %s", err)
+		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed reading body: %w", err)
 	}
 
 	var resp elevationResponse
 	if err = json.Unmarshal(bodyRaw, &resp); err != nil {
-		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed encoding body: %s", err)
+		return nil, fmt.Errorf("opentopodata.GetElevationPoints failed encoding body: %w", err)
 	}
 
 	return ToElevations(resp), nil
@@ -63,7 +62,6 @@ func ToElevations(resp elevationResponse) models.Elevations {
 				Lon: r.Location.Lng,
 			},
 		})
-
 	}
 
 	return elevations
