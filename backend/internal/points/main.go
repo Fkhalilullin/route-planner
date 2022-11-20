@@ -3,13 +3,13 @@ package points
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Fkhalilullin/route-planner/internal/services/osm"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/Fkhalilullin/route-planner/internal/config"
 	"github.com/Fkhalilullin/route-planner/internal/models"
-	"github.com/Fkhalilullin/route-planner/internal/services/osm"
 	"github.com/Fkhalilullin/route-planner/internal/services/topodata"
 )
 
@@ -20,7 +20,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	)
 
 	elevationService := topodata.NewService()
-	osmService := osm.NewService()
+	//osmService := osm.NewService()
 
 	topLeftPoint, err := getTopLeftPoint(r)
 	if err != nil {
@@ -44,6 +44,11 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		Lon: topLeftPoint.Lon,
 	}
 
+	box := osm.Box{
+		MinLon: topLeftPoint.Lon, MinLat: topLeftPoint.Lat,
+		MaxLon: botRightPoint.Lon, MaxLat: botRightPoint.Lat,
+	}
+
 	log.Printf("topLeftPoint = %v\nbotRightPoint = %v\ntopRightPoint = %v\nbotLeftPoint = %v\n",
 		topLeftPoint, botRightPoint, topRightPoint, botLeftPoint)
 
@@ -55,9 +60,10 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 			// TODO развернуть на докере
 			limiter++
 			if limiter == 100 {
-				temp, err := elevationService.GetElevationPoints(coordinateList)
+				temp, err := elevationService.GetElevationPoints(coordinateList, box)
 				if err != nil {
 					log.Println("[GET/Points] can't get elevation points: ", err)
+					return
 				}
 				elevations = append(elevations, temp...)
 
@@ -68,15 +74,17 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("[GET/Points] count elevations points: %d", len(elevations))
 
-	osmService.GetTypePoints(osm.Box{
-		MinLon: topLeftPoint.Lon, MinLat: topLeftPoint.Lat,
-		MaxLon: botRightPoint.Lon, MaxLat: botRightPoint.Lat,
-	})
+	//elevations, err = osmService.GetTypePoints(elevations, box)
+	//if err != nil {
+	//	log.Printf("[GET/Points] can't get type points: %w", err)
+	//	return
+	//}
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(elevations)
 	if err != nil {
-		log.Println("[GET/Points] can't encode to json")
+		log.Printf("[GET/Points] can't encode to json: %w", err)
+		return
 	}
 }
 

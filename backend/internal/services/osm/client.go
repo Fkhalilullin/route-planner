@@ -3,7 +3,8 @@ package osm
 import (
 	"context"
 	"fmt"
-	
+	"github.com/Fkhalilullin/route-planner/internal/models"
+
 	"github.com/paulmach/osm"
 	"github.com/paulmach/osm/osmapi"
 )
@@ -20,7 +21,7 @@ func NewService() *service {
 	return &service{}
 }
 
-func (s *service) GetTypePoints(box Box) error {
+func (s *service) GetTypePoints(elevations models.Elevations, box Box) (models.Elevations, error) {
 	bounds := &osm.Bounds{
 		//MinLon: 50.6874, MaxLon: 50.7074,
 		//MinLat: 63.9391, MaxLat: 63.9454,
@@ -30,10 +31,10 @@ func (s *service) GetTypePoints(box Box) error {
 
 	o, err := osmapi.Map(context.Background(), bounds) // fetch data from the osm api.
 	if err != nil {
-		return fmt.Errorf("openstreetmap.GetTypePoints failed http GET: %w", err)
+		return nil, fmt.Errorf("openstreetmap.GetTypePoints failed http GET: %w", err)
 	}
 
 	fmt.Println(o)
 
-	return nil
+	return nil, nil
 }

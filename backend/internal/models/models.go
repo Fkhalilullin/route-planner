@@ -8,8 +8,10 @@ type Point struct {
 type Route []Point
 
 type Elevation struct {
-	Value float64 `json:"value,omitempty"`
-	Point Point   `json:"point"`
+	Value             float64 `json:"value,omitempty"`
+	Point             Point   `json:"point"`
+	Type              string  `json:"type"`
+	NeighboringPoints []Point `json:"neighboring_points"`
 }
 
 type Elevations []Elevation
