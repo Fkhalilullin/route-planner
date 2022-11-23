@@ -6,3 +6,9 @@ type Box struct {
 	MaxLon float64
 	MaxLat float64
 }
+
+type Type struct {
+	Lat   float64
+	Lon   float64
+	Value string
+}

@@ -20,7 +20,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	)
 
 	elevationService := topodata.NewService()
-	//osmService := osm.NewService()
+	osmService := osm.NewService()
 
 	topLeftPoint, err := getTopLeftPoint(r)
 	if err != nil {
@@ -74,11 +74,11 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("[GET/Points] count elevations points: %d", len(elevations))
 
-	//elevations, err = osmService.GetTypePoints(elevations, box)
-	//if err != nil {
-	//	log.Printf("[GET/Points] can't get type points: %w", err)
-	//	return
-	//}
+	elevations, err = osmService.GetTypePoints(elevations, box)
+	if err != nil {
+		log.Printf("[GET/Points] can't get type points: %w", err)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(elevations)

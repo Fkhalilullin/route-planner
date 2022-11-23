@@ -14,4 +14,8 @@ type Elevation struct {
 	NeighboringPoints []Point `json:"neighboring_points"`
 }
 
+func (e *Elevation) SetType(newType string) {
+	e.Type = newType
+}
+
 type Elevations []Elevation

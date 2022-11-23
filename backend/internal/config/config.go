@@ -2,9 +2,12 @@ package config
 
 const (
 	// Step steps between points
-	Step = 0.0001
+	// todo change to default value Step = 0.0001
+	Step = 0.0005
 
 	TypeLand   = "land"
 	TypeWater  = "water"
-	TypeForest = "forest"
+	TypeForest = "wood"
+
+	KeyNatural = "natural"
 )
