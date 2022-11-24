@@ -1,5 +1,8 @@
 
 function main() {
+
+    getElevationGrid()
+
     const canvas = new MapCanvas()
 
     let midlon = 37.2671//37.26049//9.45874//37.26050
