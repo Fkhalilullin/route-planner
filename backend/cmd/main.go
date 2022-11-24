@@ -1,13 +1,11 @@
 package main
 
 import (
+	"github.com/Fkhalilullin/route-planner/internal/points"
+	"github.com/Fkhalilullin/route-planner/internal/route"
 	"github.com/gorilla/handlers"
 	"log"
 	"net/http"
-	"os"
-
-	"github.com/Fkhalilullin/route-planner/internal/points"
-	"github.com/Fkhalilullin/route-planner/internal/route"
 
 	"github.com/gorilla/mux"
 )
@@ -30,8 +28,8 @@ func main() {
 		Methods("GET")
 
 	// Where ORIGIN_ALLOWED is like `scheme://dns[:port]`, or `*` (insecure)
-	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With"})
-	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ORIGIN_ALLOWED")})
+	headersOk := handlers.AllowedHeaders([]string{"*"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
 	log.Println("Server start")
