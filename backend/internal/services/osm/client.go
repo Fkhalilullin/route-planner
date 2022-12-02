@@ -93,15 +93,36 @@ func (s *service) GetTypePoints(elevations models.Elevations, box Box) (models.E
 				elevations[i].SetType(p.Value)
 				continue
 			}
+
+			if GetPolyPoints(maxPoints, e.Point.Lon, e.Point.Lat) {
+				elevations[i].SetType(p.Value)
+			}
 		}
 	}
 
 	return elevations, nil
 }
 
-//max = max_integer
-//max_value = -1
-//for x in array:
-//if abs(x_core - x) < max:
-//max = abs(x_core - x)
-//max_value = x
+func GetPolyPoints(vertices []Type, lon float64, lat float64) bool {
+	var (
+		collision bool
+		next      int
+	)
+
+	for current := 0; current < len(vertices); current++ {
+		next = current + 1
+		if next == len(vertices) {
+			next = 0
+		}
+
+		vc := vertices[current]
+		vn := vertices[next]
+
+		if ((vc.Lat >= lat && vn.Lat < lat) || (vc.Lat < lat && vn.Lat >= lat)) &&
+			(lon < (vn.Lon-vc.Lon)*(lat-vc.Lon)/(vn.Lat-vc.Lat)+vc.Lon) {
+			collision = !collision
+		}
+	}
+
+	return collision
+}
