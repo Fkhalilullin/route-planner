@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/Fkhalilullin/route-planner/internal/points"
-	"github.com/Fkhalilullin/route-planner/internal/route"
 	"github.com/gorilla/handlers"
 	"log"
 	"net/http"
@@ -13,12 +12,12 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/route", route.GetRoute).
-		Queries(route.FromLat, "{from_lat}",
-			route.FromLon, "{from_lon}",
-			route.ToLat, "{to_lat}",
-			route.ToLon, "{to_lon}").
-		Methods("GET")
+	//r.HandleFunc("/route", route.GetRoute).
+	//	Queries(route.FromLat, "{from_lat}",
+	//		route.FromLon, "{from_lon}",
+	//		route.ToLat, "{to_lat}",
+	//		route.ToLon, "{to_lon}").
+	//	Methods("GET")
 
 	r.HandleFunc("/points", points.GetPoints).
 		Queries(points.LatTopLeftPoint, "{min_lat}",

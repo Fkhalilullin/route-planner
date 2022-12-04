@@ -1,69 +1,136 @@
 package route
 
 import (
-	"encoding/json"
+	"container/heap"
 	"fmt"
 	"log"
-	"net/http"
-	"strconv"
-
-	"github.com/Fkhalilullin/route-planner/internal/models"
 )
 
-func GetRoute(w http.ResponseWriter, r *http.Request) {
-	beginPoint, err := getBeginPoint(r)
-	if err != nil {
-		log.Printf("[GET/Route] can't parse begin point: %w\n", err)
-		return
-	}
+// astar is an A* pathfinding implementation.
 
-	endPoint, err := getEndPoint(r)
-	if err != nil {
-		log.Printf("[GET/Route] can't parse end point: %w\n", err)
-		return
-	}
-	route := getRoute(beginPoint, endPoint)
-	log.Printf("[GET/Route] output route: %v", route)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(route)
+// Pather is an interface which allows A* searching on arbitrary objects which
+// can represent a weighted graph.
+type Pather interface {
+	// PathNeighbors returns the direct neighboring nodes of this node which
+	// can be pathed to.
+	PathNeighbors() []Pather
+	// PathNeighborCost calculates the exact movement cost to neighbor nodes.
+	PathNeighborCost(to Pather) float64
+	// PathEstimatedCost is a heuristic method for estimating movement costs
+	// between non-adjacent nodes.
+	PathEstimatedCost(to Pather) float64
 }
 
-func getRoute(beginPoint models.Point, endPoint models.Point) models.Route {
-	var route models.Route
-	route = append(route, beginPoint, endPoint)
+// A priorityQueue implements heap.Interface and holds Nodes.  The
+// priorityQueue is used to track open nodes by rank.
+type priorityQueue []*node
 
-	return route
+func (pq priorityQueue) Len() int {
+	return len(pq)
 }
 
-func getBeginPoint(r *http.Request) (models.Point, error) {
-	latBegin, err := strconv.ParseFloat(r.URL.Query().Get(FromLat), 64)
-	if err != nil {
-		return models.Point{}, fmt.Errorf("can't get from_lat value: %w", err)
-	}
-	lonBegin, err := strconv.ParseFloat(r.URL.Query().Get(FromLon), 64)
-	if err != nil {
-		return models.Point{}, fmt.Errorf("can't get from_lon value: %w", err)
-	}
-
-	return models.Point{
-		Lat: latBegin,
-		Lon: lonBegin,
-	}, nil
+func (pq priorityQueue) Less(i, j int) bool {
+	return pq[i].rank < pq[j].rank
 }
 
-func getEndPoint(r *http.Request) (models.Point, error) {
-	latEnd, err := strconv.ParseFloat(r.URL.Query().Get(ToLat), 64)
-	if err != nil {
-		return models.Point{}, fmt.Errorf("can't get to_lat value: %w", err)
-	}
-	lonEnd, err := strconv.ParseFloat(r.URL.Query().Get(ToLon), 64)
-	if err != nil {
-		return models.Point{}, fmt.Errorf("can't get to_lon value: %w", err)
-	}
+func (pq priorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}
 
-	return models.Point{
-		Lat: latEnd,
-		Lon: lonEnd,
-	}, nil
+func (pq *priorityQueue) Push(x interface{}) {
+	n := len(*pq)
+	no := x.(*node)
+	no.index = n
+	*pq = append(*pq, no)
+}
+
+func (pq *priorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	no := old[n-1]
+	no.index = -1
+	*pq = old[0 : n-1]
+	return no
+}
+
+// node is a wrapper to store A* data for a Pather node.
+type node struct {
+	pather Pather
+	cost   float64
+	rank   float64
+	parent *node
+	open   bool
+	closed bool
+	index  int
+}
+
+// nodeMap is a collection of nodes keyed by Pather nodes for quick reference.
+type nodeMap map[Pather]*node
+
+// get gets the Pather object wrapped in a node, instantiating if required.
+func (nm nodeMap) get(p Pather) *node {
+	n, ok := nm[p]
+	if !ok {
+		n = &node{
+			pather: p,
+		}
+		nm[p] = n
+	}
+	return n
+}
+
+// Path calculates a short path and the distance between the two Pather nodes.
+//
+// If no path is found, found will be false.
+func Path(from, to Pather) (path []Pather, distance float64, found bool) {
+	nm := nodeMap{}
+	nq := &priorityQueue{}
+	heap.Init(nq)
+	fromNode := nm.get(from)
+	fromNode.open = true
+	heap.Push(nq, fromNode)
+	for {
+		if nq.Len() == 0 {
+			// There's no path, return found false.
+			return
+		}
+		current := heap.Pop(nq).(*node)
+		current.open = false
+		current.closed = true
+
+		log.Printf("%v, %v", current, nm.get(to))
+		check := nm.get(to)
+		fmt.Println(check)
+		if current.pather == nm.get(to).pather {
+			// Found a path to the goal.
+			p := []Pather{}
+			curr := current
+			for curr != nil {
+				p = append(p, curr.pather)
+				curr = curr.parent
+			}
+			return p, current.cost, true
+		}
+
+		for _, neighbor := range current.pather.PathNeighbors() {
+			cost := current.cost + current.pather.PathNeighborCost(neighbor)
+			neighborNode := nm.get(neighbor)
+			if cost < neighborNode.cost {
+				if neighborNode.open {
+					heap.Remove(nq, neighborNode.index)
+				}
+				neighborNode.open = false
+				neighborNode.closed = false
+			}
+			if !neighborNode.open && !neighborNode.closed {
+				neighborNode.cost = cost
+				neighborNode.open = true
+				neighborNode.rank = cost + neighbor.PathEstimatedCost(to)
+				neighborNode.parent = current
+				heap.Push(nq, neighborNode)
+			}
+		}
+	}
 }

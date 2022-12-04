@@ -71,16 +71,18 @@ func (s *service) GetTypePoints(elevations models.Elevations, box Box) (models.E
 		var minDistance = math.MaxFloat64
 		var maxPoint Type
 		for _, e := range elevations {
-			distance := math.Sqrt(
-				(p.Lat-e.Point.Lat)*(p.Lat-e.Point.Lat) +
-					(p.Lon-e.Point.Lon)*(p.Lon-e.Point.Lon),
-			)
-			if distance < minDistance {
-				minDistance = distance
-				maxPoint = Type{
-					Lat:   e.Point.Lat,
-					Lon:   e.Point.Lon,
-					Value: p.Value,
+			for _, ee := range e {
+				distance := math.Sqrt(
+					(p.Lat-ee.Point.Lat)*(p.Lat-ee.Point.Lat) +
+						(p.Lon-ee.Point.Lon)*(p.Lon-ee.Point.Lon),
+				)
+				if distance < minDistance {
+					minDistance = distance
+					maxPoint = Type{
+						Lat:   ee.Point.Lat,
+						Lon:   ee.Point.Lon,
+						Value: p.Value,
+					}
 				}
 			}
 		}
@@ -88,14 +90,16 @@ func (s *service) GetTypePoints(elevations models.Elevations, box Box) (models.E
 	}
 
 	for i, e := range elevations {
-		for _, p := range maxPoints {
-			if e.Point.Lat == p.Lat && e.Point.Lon == p.Lon {
-				elevations[i].SetType(p.Value)
-				continue
-			}
+		for j, ee := range e {
+			for _, p := range maxPoints {
+				if ee.Point.Lat == p.Lat && ee.Point.Lon == p.Lon {
+					elevations[i][j].SetType(p.Value)
+					continue
+				}
 
-			if GetPolyPoints(maxPoints, e.Point.Lon, e.Point.Lat) {
-				elevations[i].SetType(p.Value)
+				if GetPolyPoints(maxPoints, ee.Point.Lon, ee.Point.Lat) {
+					elevations[i][j].SetType(p.Value)
+				}
 			}
 		}
 	}
