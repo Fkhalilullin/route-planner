@@ -66,14 +66,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		}
 		pather.Mesh = append(pather.Mesh, elevations)
 	}
-
-	for i, e := range pather.Mesh {
-		for j := range e {
-			pather.Mesh[i][j].Y = i
-			pather.Mesh[i][j].X = j
-		}
-	}
-
+	
 	pather.Mesh, err = osmService.GetTypePoints(pather.Mesh, box)
 	if err != nil {
 		log.Printf("[GET/Points] can't get type route: %w", err)
@@ -116,8 +109,6 @@ func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
 					Value:             elevations[i-1][j-1].Value,
 					Point:             elevations[i-1][j-1].Point,
 					Type:              elevations[i-1][j-1].Type,
-					X:                 elevations[i-1][j-1].X,
-					Y:                 elevations[i-1][j-1].Y,
 					NeighboringPoints: nil,
 				})
 			}
@@ -126,8 +117,6 @@ func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
 					Value:             elevations[i+1][j+1].Value,
 					Point:             elevations[i+1][j+1].Point,
 					Type:              elevations[i+1][j+1].Type,
-					X:                 elevations[i+1][j+1].X,
-					Y:                 elevations[i+1][j+1].Y,
 					NeighboringPoints: nil,
 				})
 			}
@@ -136,8 +125,6 @@ func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
 					Value:             elevations[i-1][j+1].Value,
 					Point:             elevations[i-1][j+1].Point,
 					Type:              elevations[i-1][j+1].Type,
-					X:                 elevations[i-1][j+1].X,
-					Y:                 elevations[i-1][j+1].Y,
 					NeighboringPoints: nil,
 				})
 			}
@@ -146,18 +133,15 @@ func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
 					Value:             elevations[i+1][j-1].Value,
 					Point:             elevations[i+1][j-1].Point,
 					Type:              elevations[i+1][j-1].Type,
-					X:                 elevations[i+1][j-1].X,
-					Y:                 elevations[i+1][j-1].Y,
 					NeighboringPoints: nil,
 				})
 			}
 			if i+1 < len(elevations) {
 				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i+1][j].Value,
-					Point:             elevations[i+1][j].Point,
-					Type:              elevations[i+1][j].Type,
-					X:                 elevations[i+1][j].X,
-					Y:                 elevations[i+1][j].Y,
+					Value: elevations[i+1][j].Value,
+					Point: elevations[i+1][j].Point,
+					Type:  elevations[i+1][j].Type,
+
 					NeighboringPoints: nil,
 				})
 			}
@@ -166,8 +150,6 @@ func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
 					Value:             elevations[i-1][j].Value,
 					Point:             elevations[i-1][j].Point,
 					Type:              elevations[i-1][j].Type,
-					X:                 elevations[i-1][j].X,
-					Y:                 elevations[i-1][j].Y,
 					NeighboringPoints: nil,
 				})
 			}
@@ -176,8 +158,6 @@ func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
 					Value:             elevations[i][j+1].Value,
 					Point:             elevations[i][j+1].Point,
 					Type:              elevations[i][j+1].Type,
-					X:                 elevations[i][j+1].X,
-					Y:                 elevations[i][j+1].Y,
 					NeighboringPoints: nil,
 				})
 			}
@@ -186,8 +166,6 @@ func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
 					Value:             elevations[i][j-1].Value,
 					Point:             elevations[i][j-1].Point,
 					Type:              elevations[i][j-1].Type,
-					X:                 elevations[i][j-1].X,
-					Y:                 elevations[i][j-1].Y,
 					NeighboringPoints: nil,
 				})
 			}
