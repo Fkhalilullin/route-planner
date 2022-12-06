@@ -1,136 +1,223 @@
 package route
 
 import (
-	"container/heap"
-	"fmt"
+	"encoding/json"
+	"github.com/Fkhalilullin/route-planner/internal/config"
+	"github.com/Fkhalilullin/route-planner/internal/models"
+	"github.com/Fkhalilullin/route-planner/internal/pather"
+	"github.com/Fkhalilullin/route-planner/internal/services/osm"
 	"log"
+	"math"
+	"net/http"
 )
 
-// astar is an A* pathfinding implementation.
+func GetPoints(w http.ResponseWriter, r *http.Request) {
+	var (
+		resp Response
+		err  error
+	)
 
-// Pather is an interface which allows A* searching on arbitrary objects which
-// can represent a weighted graph.
-type Pather interface {
-	// PathNeighbors returns the direct neighboring nodes of this node which
-	// can be pathed to.
-	PathNeighbors() []Pather
-	// PathNeighborCost calculates the exact movement cost to neighbor nodes.
-	PathNeighborCost(to Pather) float64
-	// PathEstimatedCost is a heuristic method for estimating movement costs
-	// between non-adjacent nodes.
-	PathEstimatedCost(to Pather) float64
-}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewDecoder(r.Body).Decode(&resp)
 
-// A priorityQueue implements heap.Interface and holds Nodes.  The
-// priorityQueue is used to track open nodes by rank.
-type priorityQueue []*node
+	//elevationService := topodata.NewService()
+	osmService := osm.NewService()
 
-func (pq priorityQueue) Len() int {
-	return len(pq)
-}
-
-func (pq priorityQueue) Less(i, j int) bool {
-	return pq[i].rank < pq[j].rank
-}
-
-func (pq priorityQueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
-	pq[i].index = i
-	pq[j].index = j
-}
-
-func (pq *priorityQueue) Push(x interface{}) {
-	n := len(*pq)
-	no := x.(*node)
-	no.index = n
-	*pq = append(*pq, no)
-}
-
-func (pq *priorityQueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	no := old[n-1]
-	no.index = -1
-	*pq = old[0 : n-1]
-	return no
-}
-
-// node is a wrapper to store A* data for a Pather node.
-type node struct {
-	pather Pather
-	cost   float64
-	rank   float64
-	parent *node
-	open   bool
-	closed bool
-	index  int
-}
-
-// nodeMap is a collection of nodes keyed by Pather nodes for quick reference.
-type nodeMap map[Pather]*node
-
-// get gets the Pather object wrapped in a node, instantiating if required.
-func (nm nodeMap) get(p Pather) *node {
-	n, ok := nm[p]
-	if !ok {
-		n = &node{
-			pather: p,
-		}
-		nm[p] = n
+	topLeftPoint := models.Point{
+		Lat: resp.TopLeftPoint.Lat,
+		Lon: resp.TopLeftPoint.Lon,
 	}
-	return n
-}
 
-// Path calculates a short path and the distance between the two Pather nodes.
-//
-// If no path is found, found will be false.
-func Path(from, to Pather) (path []Pather, distance float64, found bool) {
-	nm := nodeMap{}
-	nq := &priorityQueue{}
-	heap.Init(nq)
-	fromNode := nm.get(from)
-	fromNode.open = true
-	heap.Push(nq, fromNode)
-	for {
-		if nq.Len() == 0 {
-			// There's no path, return found false.
-			return
+	botRightPoint := models.Point{
+		Lat: resp.BotRightPoint.Lat,
+		Lon: resp.BotRightPoint.Lon,
+	}
+
+	topRightPoint := models.Point{
+		Lat: topLeftPoint.Lat,
+		Lon: botRightPoint.Lon,
+	}
+
+	botLeftPoint := models.Point{
+		Lat: botRightPoint.Lat,
+		Lon: topLeftPoint.Lon,
+	}
+
+	box := osm.Box{
+		MinLon: topLeftPoint.Lon, MinLat: topLeftPoint.Lat,
+		MaxLon: botRightPoint.Lon, MaxLat: botRightPoint.Lat,
+	}
+
+	log.Printf("topLeftPoint = %v\nbotRightPoint = %v\ntopRightPoint = %v\nbotLeftPoint = %v\n",
+		topLeftPoint, botRightPoint, topRightPoint, botLeftPoint)
+
+	for lat := topLeftPoint.Lat; lat <= botLeftPoint.Lat; lat += config.Step {
+		var elevations []*pather.Coordinate
+		for lon := topLeftPoint.Lon; lon <= topRightPoint.Lon; lon += config.Step {
+			elevations = append(elevations, &pather.Coordinate{
+				Value: 0,
+				Point: models.Point{
+					Lat: lat,
+					Lon: lon,
+				},
+				Type:              config.TypeLand,
+				NeighboringPoints: nil,
+			})
 		}
-		current := heap.Pop(nq).(*node)
-		current.open = false
-		current.closed = true
+		pather.Mesh = append(pather.Mesh, elevations)
+	}
 
-		log.Printf("%v, %v", current, nm.get(to))
-		check := nm.get(to)
-		fmt.Println(check)
-		if current.pather == nm.get(to).pather {
-			// Found a path to the goal.
-			p := []Pather{}
-			curr := current
-			for curr != nil {
-				p = append(p, curr.pather)
-				curr = curr.parent
-			}
-			return p, current.cost, true
-		}
-
-		for _, neighbor := range current.pather.PathNeighbors() {
-			cost := current.cost + current.pather.PathNeighborCost(neighbor)
-			neighborNode := nm.get(neighbor)
-			if cost < neighborNode.cost {
-				if neighborNode.open {
-					heap.Remove(nq, neighborNode.index)
-				}
-				neighborNode.open = false
-				neighborNode.closed = false
-			}
-			if !neighborNode.open && !neighborNode.closed {
-				neighborNode.cost = cost
-				neighborNode.open = true
-				neighborNode.rank = cost + neighbor.PathEstimatedCost(to)
-				neighborNode.parent = current
-				heap.Push(nq, neighborNode)
-			}
+	for i, e := range pather.Mesh {
+		for j := range e {
+			pather.Mesh[i][j].Y = i
+			pather.Mesh[i][j].X = j
 		}
 	}
+
+	pather.Mesh, err = osmService.GetTypePoints(pather.Mesh, box)
+	if err != nil {
+		log.Printf("[GET/Points] can't get type route: %w", err)
+		return
+	}
+	pather.Mesh = setNeighboringPoints(pather.Mesh)
+
+	beginX, beginY := getForeignPoint(models.Point{
+		Lat: resp.BeginPoint.Lat,
+		Lon: resp.BeginPoint.Lon,
+	})
+	endX, endY := getForeignPoint(models.Point{
+		Lat: resp.EndPoint.Lat,
+		Lon: resp.EndPoint.Lon,
+	})
+	path, _, _ := pather.Path(pather.Mesh[beginX][beginY], pather.Mesh[endX][endY])
+
+	var result []models.Point
+	for _, p := range path {
+		converter := p.(*pather.Coordinate)
+		result = append(result, models.Point{
+			Lat: converter.Point.Lat,
+			Lon: converter.Point.Lon,
+		})
+	}
+
+	err = json.NewEncoder(w).Encode(result)
+	if err != nil {
+		log.Printf("[GET/Points] can't encode to json: %w", err)
+		return
+	}
+}
+
+func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
+	for i, e := range elevations {
+		for j := range e {
+			var bufElevations []*pather.Coordinate
+			if i-1 >= 0 && j-1 >= 0 {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i-1][j-1].Value,
+					Point:             elevations[i-1][j-1].Point,
+					Type:              elevations[i-1][j-1].Type,
+					X:                 elevations[i-1][j-1].X,
+					Y:                 elevations[i-1][j-1].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			if i+1 < len(elevations) && j+1 < len(e) {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i+1][j+1].Value,
+					Point:             elevations[i+1][j+1].Point,
+					Type:              elevations[i+1][j+1].Type,
+					X:                 elevations[i+1][j+1].X,
+					Y:                 elevations[i+1][j+1].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			if i-1 >= 0 && j+1 < len(e) {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i-1][j+1].Value,
+					Point:             elevations[i-1][j+1].Point,
+					Type:              elevations[i-1][j+1].Type,
+					X:                 elevations[i-1][j+1].X,
+					Y:                 elevations[i-1][j+1].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			if i+1 < len(elevations) && j-1 >= 0 {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i+1][j-1].Value,
+					Point:             elevations[i+1][j-1].Point,
+					Type:              elevations[i+1][j-1].Type,
+					X:                 elevations[i+1][j-1].X,
+					Y:                 elevations[i+1][j-1].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			if i+1 < len(elevations) {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i+1][j].Value,
+					Point:             elevations[i+1][j].Point,
+					Type:              elevations[i+1][j].Type,
+					X:                 elevations[i+1][j].X,
+					Y:                 elevations[i+1][j].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			if i-1 >= 0 {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i-1][j].Value,
+					Point:             elevations[i-1][j].Point,
+					Type:              elevations[i-1][j].Type,
+					X:                 elevations[i-1][j].X,
+					Y:                 elevations[i-1][j].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			if j+1 < len(e) {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i][j+1].Value,
+					Point:             elevations[i][j+1].Point,
+					Type:              elevations[i][j+1].Type,
+					X:                 elevations[i][j+1].X,
+					Y:                 elevations[i][j+1].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			if j-1 >= 0 {
+				bufElevations = append(bufElevations, &pather.Coordinate{
+					Value:             elevations[i][j-1].Value,
+					Point:             elevations[i][j-1].Point,
+					Type:              elevations[i][j-1].Type,
+					X:                 elevations[i][j-1].X,
+					Y:                 elevations[i][j-1].Y,
+					NeighboringPoints: nil,
+				})
+			}
+			elevations[i][j].NeighboringPoints = append(elevations[i][j].NeighboringPoints, bufElevations...)
+		}
+	}
+
+	return elevations
+}
+
+func getForeignPoint(point models.Point) (int, int) {
+	var (
+		minDistance = math.MaxFloat64
+		x           int
+		y           int
+	)
+
+	for i, e := range pather.Mesh {
+		for j, ee := range e {
+			distance := math.Sqrt(
+				(point.Lat-ee.Point.Lat)*(point.Lat-ee.Point.Lat) +
+					(point.Lon-ee.Point.Lon)*(point.Lon-ee.Point.Lon),
+			)
+			if distance < minDistance {
+				minDistance = distance
+				x = i
+				y = j
+			}
+		}
+	}
+
+	return x, y
 }

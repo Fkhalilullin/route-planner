@@ -1,8 +1,20 @@
 package route
 
-const (
-	FromLat = "from_lat"
-	FromLon = "from_lon"
-	ToLat   = "to_lat"
-	ToLon   = "to_lon"
-)
+type Response struct {
+	TopLeftPoint struct {
+		Lat float64 `json:"lat"`
+		Lon float64 `json:"lon"`
+	} `json:"topLeftPoint"`
+	BotRightPoint struct {
+		Lat float64 `json:"lat"`
+		Lon float64 `json:"lon"`
+	} `json:"botRightPoint"`
+	BeginPoint struct {
+		Lat float64 `json:"lat"`
+		Lon float64 `json:"lon"`
+	} `json:"beginPoint"`
+	EndPoint struct {
+		Lat float64 `json:"lat"`
+		Lon float64 `json:"lon"`
+	} `json:"endPoint"`
+}

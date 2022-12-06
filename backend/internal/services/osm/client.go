@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Fkhalilullin/route-planner/internal/config"
 	"github.com/Fkhalilullin/route-planner/internal/models"
+	"github.com/Fkhalilullin/route-planner/internal/pather"
 	"github.com/paulmach/osm"
 	"github.com/paulmach/osm/osmapi"
 	"math"
@@ -22,7 +23,7 @@ func NewService() *service {
 	return &service{}
 }
 
-func (s *service) GetTypePoints(elevations models.Elevations, box Box) (models.Elevations, error) {
+func (s *service) GetTypePoints(elevations pather.Coordinates, box Box) (pather.Coordinates, error) {
 	var (
 		pointsByID   = make(map[int64]models.Point)
 		pointsType   []Type
