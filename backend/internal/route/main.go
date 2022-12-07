@@ -5,6 +5,7 @@ import (
 	"github.com/Fkhalilullin/route-planner/internal/config"
 	"github.com/Fkhalilullin/route-planner/internal/models"
 	"github.com/Fkhalilullin/route-planner/internal/pather"
+	"github.com/Fkhalilullin/route-planner/internal/services/openelevation"
 	"github.com/Fkhalilullin/route-planner/internal/services/osm"
 	"log"
 	"math"
@@ -20,7 +21,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewDecoder(r.Body).Decode(&resp)
 
-	//elevationService := topodata.NewService()
+	elevationService := openelevation.NewService()
 	osmService := osm.NewService()
 
 	topLeftPoint := models.Point{
@@ -57,8 +58,8 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 			elevations = append(elevations, &pather.Coordinate{
 				Value: 0,
 				Point: models.Point{
-					Lat: lat,
-					Lon: lon,
+					Lat: roundFloat(lat, 6),
+					Lon: roundFloat(lon, 6),
 				},
 				Type:              config.TypeLand,
 				NeighboringPoints: nil,
@@ -66,7 +67,13 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		}
 		pather.Mesh = append(pather.Mesh, elevations)
 	}
-	
+
+	pather.Mesh, err = elevationService.GetElevationPoints(pather.Mesh)
+	if err != nil {
+		log.Printf("[GET/Points] can't get elevaion: %w", err)
+		return
+	}
+
 	pather.Mesh, err = osmService.GetTypePoints(pather.Mesh, box)
 	if err != nil {
 		log.Printf("[GET/Points] can't get type route: %w", err)
@@ -198,4 +205,9 @@ func getForeignPoint(point models.Point) (int, int) {
 	}
 
 	return x, y
+}
+
+func roundFloat(val float64, precision uint) float64 {
+	ratio := math.Pow(10, float64(precision))
+	return math.Round(val*ratio) / ratio
 }

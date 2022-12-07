@@ -124,8 +124,9 @@ func (c *Coordinate) PathEstimatedCost(to Pather) float64 {
 
 	absLat := (toT.Point.Lat - c.Point.Lat) * (toT.Point.Lat - c.Point.Lat)
 	absLon := (toT.Point.Lon - c.Point.Lon) * (toT.Point.Lon - c.Point.Lon)
+	absElevation := (toT.Value - c.Value) * (toT.Value - c.Value)
 
-	return math.Sqrt(absLat + absLon)
+	return math.Sqrt(absLat + absLon + absElevation)
 }
 
 func (c *Coordinate) SetType(newType string) {

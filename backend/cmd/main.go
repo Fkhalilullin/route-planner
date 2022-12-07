@@ -3,10 +3,9 @@ package main
 import (
 	"github.com/Fkhalilullin/route-planner/internal/route"
 	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 func main() {
