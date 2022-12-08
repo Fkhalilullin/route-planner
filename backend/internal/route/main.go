@@ -52,6 +52,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 	log.Printf("topLeftPoint = %v\nbotRightPoint = %v\ntopRightPoint = %v\nbotLeftPoint = %v\n",
 		topLeftPoint, botRightPoint, topRightPoint, botLeftPoint)
 
+	pather.Mesh = pather.Coordinates{}
 	for lat := topLeftPoint.Lat; lat <= botLeftPoint.Lat; lat += config.Step {
 		var elevations []*pather.Coordinate
 		for lon := topLeftPoint.Lon; lon <= topRightPoint.Lon; lon += config.Step {
