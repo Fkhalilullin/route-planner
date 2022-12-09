@@ -11,4 +11,6 @@ type Type struct {
 	Lat   float64
 	Lon   float64
 	Value string
+	X     int
+	Y     int
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Fkhalilullin/route-planner/internal/pather"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -43,7 +42,6 @@ func (s *service) GetElevationPoints(coordinates pather.Coordinates) (pather.Coo
 
 	responses := []ElevationResponse{}
 	for _, req := range requests {
-		log.Print("responses: ", req)
 		reqByte, err := json.Marshal(req)
 		reader := strings.NewReader(string(reqByte))
 
@@ -64,7 +62,6 @@ func (s *service) GetElevationPoints(coordinates pather.Coordinates) (pather.Coo
 			return nil, fmt.Errorf("opentopodata.GetElevationPoints failed encoding body: %w", err)
 		}
 		responses = append(responses, resp)
-		log.Print("responses: ", responses)
 	}
 
 	for i, c := range coordinates {

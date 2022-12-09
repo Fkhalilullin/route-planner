@@ -62,8 +62,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 					Lat: roundFloat(lat, 6),
 					Lon: roundFloat(lon, 6),
 				},
-				Type:              config.TypeLand,
-				NeighboringPoints: nil,
+				Type: config.TypeLand,
 			})
 		}
 		pather.Mesh = append(pather.Mesh, elevations)
@@ -87,7 +86,6 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[GET/Points] can't get type route: %w", err)
 		return
 	}
-	pather.Mesh = setNeighboringPoints(pather.Mesh)
 
 	beginX, beginY := getForeignPoint(models.Point{
 		Lat: resp.BeginPoint.Lat,
@@ -97,11 +95,16 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		Lat: resp.EndPoint.Lat,
 		Lon: resp.EndPoint.Lon,
 	})
+
+	log.Println("BeginPoint: ", pather.Mesh[beginX][beginY])
+	log.Println("EndPoint: ", pather.Mesh[endX][endY])
 	path, _, _ := pather.Path(pather.Mesh[beginX][beginY], pather.Mesh[endX][endY])
 
 	var result []models.Point
 	for _, p := range path {
 		converter := p.(*pather.Coordinate)
+		log.Printf("Type=%s Lat=%f Lon=%f Elev=%f",
+			converter.Type, converter.Point.Lat, converter.Point.Lon, converter.Value)
 		result = append(result, models.Point{
 			Lat: converter.Point.Lat,
 			Lon: converter.Point.Lon,
@@ -113,97 +116,6 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[GET/Points] can't encode to json: %w", err)
 		return
 	}
-}
-
-func setNeighboringPoints(elevations pather.Coordinates) pather.Coordinates {
-	for i, e := range elevations {
-		for j := range e {
-			var bufElevations []*pather.Coordinate
-			if i-1 >= 0 && j-1 >= 0 {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i-1][j-1].Value,
-					Point:             elevations[i-1][j-1].Point,
-					Type:              elevations[i-1][j-1].Type,
-					X:                 elevations[i-1][j-1].X,
-					Y:                 elevations[i-1][j-1].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			if i+1 < len(elevations) && j+1 < len(e) {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i+1][j+1].Value,
-					Point:             elevations[i+1][j+1].Point,
-					Type:              elevations[i+1][j+1].Type,
-					X:                 elevations[i+1][j+1].X,
-					Y:                 elevations[i+1][j+1].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			if i-1 >= 0 && j+1 < len(e) {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i-1][j+1].Value,
-					Point:             elevations[i-1][j+1].Point,
-					Type:              elevations[i-1][j+1].Type,
-					X:                 elevations[i-1][j+1].X,
-					Y:                 elevations[i-1][j+1].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			if i+1 < len(elevations) && j-1 >= 0 {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i+1][j-1].Value,
-					Point:             elevations[i+1][j-1].Point,
-					Type:              elevations[i+1][j-1].Type,
-					X:                 elevations[i+1][j-1].X,
-					Y:                 elevations[i+1][j-1].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			if i+1 < len(elevations) {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i+1][j].Value,
-					Point:             elevations[i+1][j].Point,
-					Type:              elevations[i+1][j].Type,
-					X:                 elevations[i+1][j].X,
-					Y:                 elevations[i+1][j].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			if i-1 >= 0 {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i-1][j].Value,
-					Point:             elevations[i-1][j].Point,
-					Type:              elevations[i-1][j].Type,
-					X:                 elevations[i-1][j].X,
-					Y:                 elevations[i-1][j].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			if j+1 < len(e) {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i][j+1].Value,
-					Point:             elevations[i][j+1].Point,
-					Type:              elevations[i][j+1].Type,
-					X:                 elevations[i][j+1].X,
-					Y:                 elevations[i][j+1].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			if j-1 >= 0 {
-				bufElevations = append(bufElevations, &pather.Coordinate{
-					Value:             elevations[i][j-1].Value,
-					Point:             elevations[i][j-1].Point,
-					Type:              elevations[i][j-1].Type,
-					X:                 elevations[i][j-1].X,
-					Y:                 elevations[i][j-1].Y,
-					NeighboringPoints: nil,
-				})
-			}
-			elevations[i][j].NeighboringPoints = append(elevations[i][j].NeighboringPoints, bufElevations...)
-		}
-	}
-
-	return elevations
 }
 
 func getForeignPoint(point models.Point) (int, int) {

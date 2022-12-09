@@ -5,10 +5,9 @@ import "github.com/Fkhalilullin/route-planner/internal/models"
 type Coordinates [][]*Coordinate
 
 type Coordinate struct {
-	Value             float64       `json:"value,omitempty"`
-	Point             models.Point  `json:"point"`
-	Type              string        `json:"type"`
-	NeighboringPoints []*Coordinate `json:"neighboring_points"`
+	Value float64      `json:"value,omitempty"`
+	Point models.Point `json:"point"`
+	Type  string       `json:"type"`
 
 	X int
 	Y int

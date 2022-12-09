@@ -61,36 +61,35 @@ func Path(from, to Pather) (path []Pather, distance float64, found bool) {
 func (c *Coordinate) getNeighboringPoints() []*Coordinate {
 	var bufElevations []*Coordinate
 
-	for i, ee := range Mesh {
-		for j := range ee {
-			if Mesh[i][j].X == c.X && Mesh[i][j].Y == c.Y {
-				if i-1 >= 0 && j-1 >= 0 {
-					bufElevations = append(bufElevations, Mesh[i-1][j-1])
-				}
-				if i+1 < len(Mesh) && j+1 < len(ee) {
-					bufElevations = append(bufElevations, Mesh[i+1][j+1])
-				}
-				if i-1 >= 0 && j+1 < len(ee) {
-					bufElevations = append(bufElevations, Mesh[i-1][j+1])
-				}
-				if i+1 < len(Mesh) && j-1 >= 0 {
-					bufElevations = append(bufElevations, Mesh[i+1][j-1])
-				}
-				if i+1 < len(Mesh) {
-					bufElevations = append(bufElevations, Mesh[i+1][j])
-				}
-				if i-1 >= 0 {
-					bufElevations = append(bufElevations, Mesh[i-1][j])
-				}
-				if j+1 < len(ee) {
-					bufElevations = append(bufElevations, Mesh[i][j+1])
-				}
-				if j-1 >= 0 {
-					bufElevations = append(bufElevations, Mesh[i][j-1])
-				}
-				break
-			}
+	for _, ee := range Mesh {
+		if c.X+1 < len(Mesh) {
+			bufElevations = append(bufElevations, Mesh[c.X+1][c.Y])
 		}
+		if c.X-1 >= 0 {
+			bufElevations = append(bufElevations, Mesh[c.X-1][c.Y])
+		}
+		if c.Y+1 < len(ee) {
+			bufElevations = append(bufElevations, Mesh[c.X][c.Y+1])
+		}
+		if c.Y-1 >= 0 {
+			bufElevations = append(bufElevations, Mesh[c.X][c.Y-1])
+		}
+
+		if c.X-1 >= 0 && c.Y-1 >= 0 {
+			bufElevations = append(bufElevations, Mesh[c.X-1][c.Y-1])
+		}
+		if c.X+1 < len(Mesh) && c.Y+1 < len(ee) {
+			bufElevations = append(bufElevations, Mesh[c.X+1][c.Y+1])
+		}
+
+		//if c.X+1 < len(Mesh) && c.Y-1 >= 0 {
+		//	bufElevations = append(bufElevations, Mesh[c.X+1][c.Y-1])
+		//}
+		//if c.X-1 >= 0 && c.Y+1 < len(ee) {
+		//	bufElevations = append(bufElevations, Mesh[c.X-1][c.Y+1])
+		//}
+		//
+		break
 	}
 
 	return bufElevations
@@ -109,11 +108,11 @@ func (c *Coordinate) PathNeighborCost(to Pather) float64 {
 
 	switch toT.Type {
 	case config.TypeLand:
-		return 1
+		return config.LandCost
 	case config.TypeForest:
-		return 3
+		return config.ForestCost
 	case config.TypeWater:
-		return 2
+		return config.WaterCost
 	}
 	return 1
 }
@@ -121,13 +120,17 @@ func (c *Coordinate) PathNeighborCost(to Pather) float64 {
 func (c *Coordinate) PathEstimatedCost(to Pather) float64 {
 	toT := to.(*Coordinate)
 
-	//absLat := (toT.Point.Lat - c.Point.Lat) * (toT.Point.Lat - c.Point.Lat)
-	//absLon := (toT.Point.Lon - c.Point.Lon) * (toT.Point.Lon - c.Point.Lon)
-	absLat := (toT.X - c.X) * (toT.X - c.X)
-	absLon := (toT.Y - c.Y) * (toT.Y - c.Y)
-	absElevation := (toT.Value - c.Value) * (toT.Value - c.Value)
+	// Евклид
+	absLat := (toT.Point.Lat - c.Point.Lat) * (toT.Point.Lat - c.Point.Lat)
+	absLon := (toT.Point.Lon - c.Point.Lon) * (toT.Point.Lon - c.Point.Lon)
+	//absElevation := (toT.Value - c.Value) * (toT.Value - c.Value)
 
-	return math.Sqrt(float64(absLat+absLon) + absElevation)
+	// Чебушев
+	//absLat := math.Abs(toT.Point.Lat - c.Point.Lat)
+	//absLon := math.Abs(toT.Point.Lon - c.Point.Lon)
+
+	return math.Sqrt(absLat + absLon)
+	//return math.Max(absLat, absLon)
 }
 
 func (c *Coordinate) SetType(newType string) {

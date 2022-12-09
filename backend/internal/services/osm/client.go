@@ -71,8 +71,8 @@ func (s *service) GetTypePoints(elevations pather.Coordinates, box Box) (pather.
 	for _, p := range pointsType {
 		var minDistance = math.MaxFloat64
 		var maxPoint Type
-		for _, e := range elevations {
-			for _, ee := range e {
+		for i, e := range elevations {
+			for j, ee := range e {
 				distance := math.Sqrt(
 					(p.Lat-ee.Point.Lat)*(p.Lat-ee.Point.Lat) +
 						(p.Lon-ee.Point.Lon)*(p.Lon-ee.Point.Lon),
@@ -83,6 +83,8 @@ func (s *service) GetTypePoints(elevations pather.Coordinates, box Box) (pather.
 						Lat:   ee.Point.Lat,
 						Lon:   ee.Point.Lon,
 						Value: p.Value,
+						X:     i,
+						Y:     j,
 					}
 				}
 			}
@@ -93,7 +95,7 @@ func (s *service) GetTypePoints(elevations pather.Coordinates, box Box) (pather.
 	for i, e := range elevations {
 		for j, ee := range e {
 			for _, p := range maxPoints {
-				if ee.Point.Lat == p.Lat && ee.Point.Lon == p.Lon {
+				if ee.X == p.X && ee.Y == p.Y {
 					elevations[i][j].SetType(p.Value)
 					continue
 				}
@@ -124,7 +126,7 @@ func GetPolyPoints(vertices []Type, lon float64, lat float64) bool {
 		vn := vertices[next]
 
 		if ((vc.Lat >= lat && vn.Lat < lat) || (vc.Lat < lat && vn.Lat >= lat)) &&
-			(lon < (vn.Lon-vc.Lon)*(lat-vc.Lon)/(vn.Lat-vc.Lat)+vc.Lon) {
+			(lon < (vn.Lon-vc.Lon)*(lat-vc.Lat)/(vn.Lat-vc.Lat)+vc.Lon) {
 			collision = !collision
 		}
 	}
