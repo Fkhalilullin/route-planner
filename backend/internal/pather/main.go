@@ -28,7 +28,7 @@ func Path(from, to Pather) (path []Pather, distance float64, found bool) {
 		current.closed = true
 
 		if current.pather == nm.get(to).pather {
-			var p []Pather
+			p := []Pather{}
 			curr := current
 			for curr != nil {
 				p = append(p, curr.pather)
@@ -63,8 +63,7 @@ func (c *Coordinate) getNeighboringPoints() []*Coordinate {
 
 	for i, ee := range Mesh {
 		for j := range ee {
-			if Mesh[i][j].Point.Lat == c.Point.Lat &&
-				Mesh[i][j].Point.Lon == c.Point.Lon {
+			if Mesh[i][j].X == c.X && Mesh[i][j].Y == c.Y {
 				if i-1 >= 0 && j-1 >= 0 {
 					bufElevations = append(bufElevations, Mesh[i-1][j-1])
 				}
@@ -112,9 +111,9 @@ func (c *Coordinate) PathNeighborCost(to Pather) float64 {
 	case config.TypeLand:
 		return 1
 	case config.TypeForest:
-		return 20
+		return 3
 	case config.TypeWater:
-		return 30
+		return 2
 	}
 	return 1
 }
@@ -122,11 +121,13 @@ func (c *Coordinate) PathNeighborCost(to Pather) float64 {
 func (c *Coordinate) PathEstimatedCost(to Pather) float64 {
 	toT := to.(*Coordinate)
 
-	absLat := (toT.Point.Lat - c.Point.Lat) * (toT.Point.Lat - c.Point.Lat)
-	absLon := (toT.Point.Lon - c.Point.Lon) * (toT.Point.Lon - c.Point.Lon)
+	//absLat := (toT.Point.Lat - c.Point.Lat) * (toT.Point.Lat - c.Point.Lat)
+	//absLon := (toT.Point.Lon - c.Point.Lon) * (toT.Point.Lon - c.Point.Lon)
+	absLat := (toT.X - c.X) * (toT.X - c.X)
+	absLon := (toT.Y - c.Y) * (toT.Y - c.Y)
 	absElevation := (toT.Value - c.Value) * (toT.Value - c.Value)
 
-	return math.Sqrt(absLat + absLon + absElevation)
+	return math.Sqrt(float64(absLat+absLon) + absElevation)
 }
 
 func (c *Coordinate) SetType(newType string) {

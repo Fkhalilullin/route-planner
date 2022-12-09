@@ -9,6 +9,9 @@ type Coordinate struct {
 	Point             models.Point  `json:"point"`
 	Type              string        `json:"type"`
 	NeighboringPoints []*Coordinate `json:"neighboring_points"`
+
+	X int
+	Y int
 }
 
 var Mesh Coordinates
