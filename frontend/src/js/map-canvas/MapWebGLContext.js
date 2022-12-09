@@ -114,6 +114,13 @@ class MapWebGLContext {
         this.gl.drawArrays(this.gl.TRIANGLE_FAN, 0, vertices.length / 2);
     }
 
+    drawPoints(vertices, hexColor) {
+        // Write the positions of vertices to a vertex shader
+        this._initVertexBuffers(vertices, hexColor);
+        // Draw three points
+        this.gl.drawArrays(this.gl.POINTS, 0, vertices.length / 2);
+    }
+
     drawPolyline(vertices, hexColor) {
         // Write the positions of vertices to a vertex shader
         this._initVertexBuffers(vertices, hexColor);
