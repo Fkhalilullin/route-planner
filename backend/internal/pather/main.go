@@ -82,13 +82,13 @@ func (c *Coordinate) getNeighboringPoints() []*Coordinate {
 			bufElevations = append(bufElevations, Mesh[c.X+1][c.Y+1])
 		}
 
-		//if c.X+1 < len(Mesh) && c.Y-1 >= 0 {
-		//	bufElevations = append(bufElevations, Mesh[c.X+1][c.Y-1])
-		//}
-		//if c.X-1 >= 0 && c.Y+1 < len(ee) {
-		//	bufElevations = append(bufElevations, Mesh[c.X-1][c.Y+1])
-		//}
-		//
+		if c.X+1 < len(Mesh) && c.Y-1 >= 0 {
+			bufElevations = append(bufElevations, Mesh[c.X+1][c.Y-1])
+		}
+		if c.X-1 >= 0 && c.Y+1 < len(ee) {
+			bufElevations = append(bufElevations, Mesh[c.X-1][c.Y+1])
+		}
+
 		break
 	}
 
@@ -106,13 +106,18 @@ func (c *Coordinate) PathNeighbors() []Pather {
 func (c *Coordinate) PathNeighborCost(to Pather) float64 {
 	toT := to.(*Coordinate)
 
+	diagonalMove := 1.0
+	if toT.X != c.X && toT.Y != c.Y {
+		diagonalMove = 1.42412
+	}
+
 	switch toT.Type {
 	case config.TypeLand:
-		return config.LandCost
+		return config.LandCost * diagonalMove
 	case config.TypeForest:
-		return config.ForestCost
+		return config.ForestCost * diagonalMove
 	case config.TypeWater:
-		return config.WaterCost
+		return config.WaterCost * diagonalMove
 	}
 	return 1
 }
@@ -123,13 +128,13 @@ func (c *Coordinate) PathEstimatedCost(to Pather) float64 {
 	// Евклид
 	absLat := (toT.Point.Lat - c.Point.Lat) * (toT.Point.Lat - c.Point.Lat)
 	absLon := (toT.Point.Lon - c.Point.Lon) * (toT.Point.Lon - c.Point.Lon)
-	//absElevation := (toT.Value - c.Value) * (toT.Value - c.Value)
+	absElevation := (toT.Value - c.Value) * (toT.Value - c.Value)
 
 	// Чебушев
 	//absLat := math.Abs(toT.Point.Lat - c.Point.Lat)
 	//absLon := math.Abs(toT.Point.Lon - c.Point.Lon)
 
-	return math.Sqrt(absLat + absLon)
+	return math.Sqrt(absLat + absLon + absElevation)
 	//return math.Max(absLat, absLon)
 }
 
