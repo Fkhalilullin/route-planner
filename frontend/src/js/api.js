@@ -47,9 +47,11 @@ function getRoute(topLeftPoint, botRightPoint, beginPoint, endPoint, self) {
                 coords[i * 2 + 1] = route[i].lat;
                 self.drawPoint(route[i].lon, route[i].lat, "#ff0000")
             }
-            console.log(coords)
             let canvasCoords = self._convertCoordsToCanvas(coords)
-            self.mapWebGLContext.drawPolyline(canvasCoords, "#ff0000")
+
+            console.log(canvasCoords)
+            let splinePoints = calculateLineSpline(canvasCoords, canvasCoords.length, 3)
+            self.mapWebGLContext.drawPolyline(splinePoints, "#ff0000")
 
             self.drawPoint(self.startRoute.x, self.startRoute.y, "#ff9090")
             self.drawPoint(self.endRoute.x, self.endRoute.y, "#ff0000")
