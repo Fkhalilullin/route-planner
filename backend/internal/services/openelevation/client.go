@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Fkhalilullin/route-planner/internal/pather"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -40,8 +41,10 @@ func (s *service) GetElevationPoints(coordinates pather.Coordinates) (pather.Coo
 		requests = append(requests, req)
 	}
 
+	log.Printf("Total requests: %d", len(requests))
 	responses := []ElevationResponse{}
-	for _, req := range requests {
+	for i, req := range requests {
+		log.Printf("Starting get %d response", i+1)
 		reqByte, err := json.Marshal(req)
 		reader := strings.NewReader(string(reqByte))
 

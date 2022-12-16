@@ -75,12 +75,14 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log.Println("Get elevation...")
 	pather.Mesh, err = elevationService.GetElevationPoints(pather.Mesh)
 	if err != nil {
 		log.Printf("[GET/Points] can't get elevaion: %w", err)
 		return
 	}
 
+	log.Println("Get types...")
 	pather.Mesh, err = osmService.GetTypePoints(pather.Mesh, box)
 	if err != nil {
 		log.Printf("[GET/Points] can't get type route: %w", err)
@@ -98,7 +100,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("BeginPoint: ", pather.Mesh[beginX][beginY])
 	log.Println("EndPoint: ", pather.Mesh[endX][endY])
-	path, _, _ := pather.Path(pather.Mesh[beginX][beginY], pather.Mesh[endX][endY])
+	path, distance, _ := pather.Path(pather.Mesh[beginX][beginY], pather.Mesh[endX][endY])
 
 	var result []models.Point
 	for _, p := range path {
@@ -110,6 +112,7 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 			Lon: converter.Point.Lon,
 		})
 	}
+	log.Printf("Total distance: %f", distance)
 
 	err = json.NewEncoder(w).Encode(result)
 	if err != nil {
