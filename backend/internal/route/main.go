@@ -2,19 +2,22 @@ package route
 
 import (
 	"encoding/json"
-	"github.com/Fkhalilullin/route-planner/internal/config"
-	"github.com/Fkhalilullin/route-planner/internal/models"
-	"github.com/Fkhalilullin/route-planner/internal/pather"
-	"github.com/Fkhalilullin/route-planner/internal/services/openelevation"
-	"github.com/Fkhalilullin/route-planner/internal/services/osm"
 	"log"
 	"math"
 	"net/http"
+
+	"github.com/Fkhalilullin/route-planner/internal/config"
+	"github.com/Fkhalilullin/route-planner/internal/helpers"
+	"github.com/Fkhalilullin/route-planner/internal/models"
+	"github.com/Fkhalilullin/route-planner/internal/pather"
+
+	"github.com/Fkhalilullin/route-planner/internal/services/openelevation"
+	"github.com/Fkhalilullin/route-planner/internal/services/osm"
 )
 
 func GetPoints(w http.ResponseWriter, r *http.Request) {
 	var (
-		resp Response
+		resp Request
 		err  error
 	)
 
@@ -59,8 +62,8 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 			elevations = append(elevations, &pather.Coordinate{
 				Value: 0,
 				Point: models.Point{
-					Lat: roundFloat(lat, 6),
-					Lon: roundFloat(lon, 6),
+					Lat: helpers.RoundFloat(lat, 6),
+					Lon: helpers.RoundFloat(lon, 6),
 				},
 				Type: config.TypeLand,
 			})
@@ -143,9 +146,4 @@ func getForeignPoint(point models.Point) (int, int) {
 	}
 
 	return x, y
-}
-
-func roundFloat(val float64, precision uint) float64 {
-	ratio := math.Pow(10, float64(precision))
-	return math.Round(val*ratio) / ratio
 }
