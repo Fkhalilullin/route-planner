@@ -12,7 +12,9 @@ type Request struct {
 }
 
 type Response struct {
-	Points []Points `json:"points"`
+	RowCount    int      `json:"rowCount"`
+	ColumnCount int      `json:"columnCount"`
+	Points      []Points `json:"points"`
 }
 
 type Points struct {

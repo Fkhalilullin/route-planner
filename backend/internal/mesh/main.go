@@ -80,6 +80,9 @@ func GetMesh(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	request.RowCount = len(pather.Mesh)
+	request.ColumnCount = len(pather.Mesh[0])
+
 	err = json.NewEncoder(w).Encode(request)
 	if err != nil {
 		log.Printf("[GET/Points] can't encode to json: %w", err)
