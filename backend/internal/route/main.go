@@ -92,32 +92,29 @@ func GetPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	beginX, beginY := getForeignPoint(models.Point{
-		Lat: resp.BeginPoint.Lat,
-		Lon: resp.BeginPoint.Lon,
-	})
-	endX, endY := getForeignPoint(models.Point{
-		Lat: resp.EndPoint.Lat,
-		Lon: resp.EndPoint.Lon,
-	})
+	var response [][]Path
+	for i := range resp.Paths {
+		if i < len(resp.Paths)-1 {
+			beginX, beginY := getForeignPoint(models.Point{
+				Lat: resp.Paths[i].Lat,
+				Lon: resp.Paths[i].Lon,
+			})
+			endX, endY := getForeignPoint(models.Point{
+				Lat: resp.Paths[i+1].Lat,
+				Lon: resp.Paths[i+1].Lon,
+			})
 
-	log.Println("BeginPoint: ", pather.Mesh[beginX][beginY])
-	log.Println("EndPoint: ", pather.Mesh[endX][endY])
-	path, distance, _ := pather.Path(pather.Mesh[beginX][beginY], pather.Mesh[endX][endY])
+			path, distance, _ := pather.Path(pather.Mesh[beginX][beginY], pather.Mesh[endX][endY])
+			log.Printf("BeginPoint for %d way: %v:", i+1, pather.Mesh[beginX][beginY])
+			log.Printf("EndPoint for %d way: %v:", i+1, pather.Mesh[endX][endY])
+			log.Printf("Total distance for %d way: %f", i+1, distance)
 
-	var result []models.Point
-	for _, p := range path {
-		converter := p.(*pather.Coordinate)
-		log.Printf("Type=%s Lat=%f Lon=%f Elev=%f",
-			converter.Type, converter.Point.Lat, converter.Point.Lon, converter.Value)
-		result = append(result, models.Point{
-			Lat: converter.Point.Lat,
-			Lon: converter.Point.Lon,
-		})
+			res := convPathToRequest(path)
+			response = append(response, res)
+		}
 	}
-	log.Printf("Total distance: %f", distance)
 
-	err = json.NewEncoder(w).Encode(result)
+	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		log.Printf("[GET/Points] can't encode to json: %w", err)
 		return
@@ -146,4 +143,20 @@ func getForeignPoint(point models.Point) (int, int) {
 	}
 
 	return x, y
+}
+
+func convPathToRequest(path []pather.Pather) []Path {
+	var res []Path
+
+	for _, p := range path {
+		converter := p.(*pather.Coordinate)
+		log.Printf("Type=%s Lat=%f Lon=%f Elev=%f",
+			converter.Type, converter.Point.Lat, converter.Point.Lon, converter.Value)
+		res = append(res, Path{
+			Lat: converter.Point.Lat,
+			Lon: converter.Point.Lon,
+		})
+	}
+
+	return res
 }
