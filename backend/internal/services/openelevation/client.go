@@ -3,12 +3,12 @@ package openelevation
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Fkhalilullin/route-planner/internal/config"
 	"github.com/Fkhalilullin/route-planner/internal/pather"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type ElevationProvider interface {
@@ -23,9 +23,12 @@ func NewService() *service {
 	return &service{}
 }
 
-const endpoint = "https://api.open-elevation.com/api/v1/lookup"
-
 func (s *service) GetElevationPoints(coordinates pather.Coordinates) (pather.Coordinates, error) {
+	var endpoint string
+	endpoint = "https://api.open-elevation.com/api/v1/lookup"
+	if config.UseLocalHost {
+		endpoint = "http://localhost:80/api/v1/lookup"
+	}
 
 	requests := []ElevationRequest{}
 	for _, c := range coordinates {
@@ -48,7 +51,6 @@ func (s *service) GetElevationPoints(coordinates pather.Coordinates) (pather.Coo
 		reqByte, err := json.Marshal(req)
 		reader := strings.NewReader(string(reqByte))
 
-		time.Sleep(time.Second / 2)
 		res, err := http.Post(endpoint, "application/json", reader)
 		if err != nil {
 			return nil, fmt.Errorf("opentopodata.GetElevationPoints failed http GET: %w", err)
