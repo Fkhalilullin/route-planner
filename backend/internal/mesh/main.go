@@ -45,9 +45,9 @@ func GetMesh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pather.Mesh = pather.Coordinates{}
-	for lat := topLeftPoint.Lat; lat <= botLeftPoint.Lat; lat += config.Step {
+	for lat := topLeftPoint.Lat; lat <= botLeftPoint.Lat+config.Step; lat += config.Step {
 		var elevations []*pather.Coordinate
-		for lon := topLeftPoint.Lon; lon <= topRightPoint.Lon; lon += config.Step {
+		for lon := topLeftPoint.Lon; lon <= topRightPoint.Lon+config.Step; lon += config.Step {
 			elevations = append(elevations, &pather.Coordinate{
 				Value: 0,
 				Point: models.Point{
