@@ -2,8 +2,9 @@ package pather
 
 import (
 	"container/heap"
-	"github.com/Fkhalilullin/route-planner/internal/config"
 	"math"
+
+	"github.com/Fkhalilullin/route-planner/internal/config"
 )
 
 type Pather interface {

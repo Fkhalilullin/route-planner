@@ -36,7 +36,7 @@ type Response struct {
 }
 
 //const endpoint = "https://api.open-elevation.com/api/v1/lookup"
-const endpoint = "http://0.0.0.0:8080/api/v1/lookup"
+const endpoint = "http://0.0.0.0:80/api/v1/lookup"
 
 func (s *service) GetElevationPoints(coordinates pather.Coordinates) (pather.Coordinates, error) {
 

@@ -1,4 +1,4 @@
-package route
+package mesh
 
 type Request struct {
 	TopLeftPoint struct {
@@ -9,14 +9,16 @@ type Request struct {
 		Lat float64 `json:"lat"`
 		Lon float64 `json:"lon"`
 	} `json:"botRightPoint"`
-	Paths []Path `json:"paths"`
 }
 
 type Response struct {
-	Paths []Path `json:"paths"`
+	RowCount    int      `json:"rowCount"`
+	ColumnCount int      `json:"columnCount"`
+	Points      []Points `json:"points"`
 }
 
-type Path struct {
-	Lat float64 `json:"lat"`
-	Lon float64 `json:"lon"`
+type Points struct {
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	Elevation float64 `json:"elevation"`
 }
