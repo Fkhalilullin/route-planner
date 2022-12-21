@@ -8,21 +8,40 @@ function getMapFragment(minlon, minlat, maxlon, maxlat) {
     return req.responseXML
 }
 
-function getElevationGrid() {
-    const url = `http://localhost:8000/points?min_lat=63.9391&min_lon=50.6874&max_lat=63.9454&max_lon=50.7074`
+function getMesh(minLon, minLat, maxLon, maxLat, mapCanvas) {
+    const url = `http://localhost:8000/mesh`
     const req = new XMLHttpRequest()
-    req.responseType = 'json';
-    req.open("GET", url, true)
-    req.onload  = function() {
-        const status = req.status;
-        if (status === 200) {
-            console.log('SUCCESS\n', req.response)
+    req.responseType = 'json'
+    req.open("POST", url, true)
+
+    req.onload = function() {
+        if (req.status === 200) {
+            console.log('Response received (getting mesh). SUCCESS.\n', req.response)
+
+            let mesh = req.response
+
+            mapCanvas.drawElevations(mesh)
+            const responseXml = getMapFragment(minLon, minLat, maxLon, maxLat)
+            mapCanvas.lastMapFragment = new MapFragment(responseXml)
+            mapCanvas.drawMap(mapCanvas.lastMapFragment)
+
+            document.body.style.cursor = 'default';
+
         } else {
-            console.log('ERROR')
+            document.body.style.cursor = 'default';
+            console.log('Response received (getting mesh): ERROR. Response status: ', req.status)
         }
-    };
-    req.send(null)
-    return req
+    }
+
+    let body = JSON.stringify(new RouteRq(
+        new MapNode(minLat, minLon),
+        new MapNode(maxLat, maxLon)
+    ));
+    // req.setRequestHeader("Content-Type", "application/json")
+    console.log('Send request (getting mesh). Url: ', url, '\nBody: ', body)
+    document.body.style.cursor = 'wait';
+    req.send(body)
+    return req.response
 }
 
 function getRoute(topLeftPoint, botRightPoint, beginPoint, endPoint, self) {

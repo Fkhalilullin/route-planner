@@ -14,7 +14,7 @@ class MapCanvas {
 
     drawMap(mapFragment) {
         this.lastMapFragment = mapFragment
-        this.mapWebGLContext.clear("#f2efe9")
+        // this.mapWebGLContext.clear("#f2efe9")
         mapFragment.ways.forEach(way => {
             let canvasCoords = this._convertCoordsToCanvas(way.vertices)
             let color
@@ -26,6 +26,97 @@ class MapCanvas {
                 if (naturalValue == "wood")
                     color = "#aadd19e"
                 else if (naturalValue == "water")
+                    color = "#aad3df"
+            } else if (way.wayTags.get("waterway") != null) {
+                color = "#aad3df"
+            }
+            if (color != null) {
+                this.mapWebGLContext.drawPolygon(canvasCoords, color)
+            }
+        })
+    }
+
+    _componentToHex(c) {
+        let hex = Math.round(c * 255).toString(16)
+        return hex.length === 1 ? "0" + hex : hex
+    }
+
+    _rgbToHex(r, g, b) {
+        return "#" + this._componentToHex(r) + this._componentToHex(g) + this._componentToHex(b);
+    }
+
+    _indexesFrom2dTo1d(i, j, columnCount) {
+        return (i * columnCount + j)
+    }
+
+    gradient(value, minValue, maxValue, downColor, upColor) {
+        let coef = (value - minValue) / (maxValue - minValue)
+        let [dr, dg, db] = this.mapWebGLContext._hexToRgb(downColor)
+        let [ur, ug, ub] = this.mapWebGLContext._hexToRgb(upColor)
+        let r = (ur - dr) * coef + dr
+        let g = (ug - dg) * coef + dg
+        let b = (ub - db) * coef + db
+        return this._rgbToHex(r, g, b)
+    }
+
+    drawElevations(elevationMesh) {
+        for (let i = 0; i < elevationMesh.rowCount - 1; ++i) {
+            for (let j = 0; j < elevationMesh.columnCount - 1; ++j) {
+
+                let geographicCoords = new Float32Array(8)
+                let point_0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)]
+                let point_1 = elevationMesh.points[this._indexesFrom2dTo1d(i + 1, j, elevationMesh.columnCount)]
+                let point_2 = elevationMesh.points[this._indexesFrom2dTo1d(i + 1, j + 1, elevationMesh.columnCount)]
+                let point_3 = elevationMesh.points[this._indexesFrom2dTo1d(i, j + 1, elevationMesh.columnCount)]
+                geographicCoords[0] = point_0.lon
+                geographicCoords[1] = point_0.lat
+                geographicCoords[2] = point_1.lon
+                geographicCoords[3] = point_1.lat
+                geographicCoords[4] = point_2.lon
+                geographicCoords[5] = point_2.lat
+                geographicCoords[6] = point_3.lon
+                geographicCoords[7] = point_3.lat
+                // geographicCoords[3] = elevationMesh.points[this._indexesFrom2dTo1d(i + 1, j, elevationMesh.rowCount)].elevation
+                // geographicCoords[4] = elevationMesh.points[this._indexesFrom2dTo1d(i, j + 1, elevationMesh.rowCount)].elevation
+                // geographicCoords[5] = elevationMesh.points[this._indexesFrom2dTo1d(i + 1, j + 1, elevationMesh.rowCount)].elevation
+
+                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
+                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
+                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
+                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
+                let hexColor_0 = this.gradient(point_0.elevation, 480, 540, "#09ff00", "#800000")
+                let hexColor_1 = this.gradient(point_1.elevation, 480, 540, "#09ff00", "#800000")
+                let hexColor_2 = this.gradient(point_2.elevation, 480, 540, "#09ff00", "#800000")
+                let hexColor_3 = this.gradient(point_3.elevation, 480, 540, "#09ff00", "#800000")
+                const hexColors = [
+                    hexColor_0,
+                    hexColor_1,
+                    hexColor_2,
+                    hexColor_3
+                ]
+                const alpha = 1
+                const alphaArray = [
+                    alpha,
+                    alpha,
+                    alpha,
+                    alpha
+                ]
+                // this.mapWebGLContext.drawPolygon(this._convertCoordsToCanvas(geographicCoords), hexColor)
+                let vertices = this._convertCoordsToCanvas(geographicCoords)
+                this.mapWebGLContext.drawColorPolygon(vertices, hexColors, alphaArray)
+            }
+        }
+        this.lastMapFragment.ways.forEach(way => {
+            let canvasCoords = this._convertCoordsToCanvas(way.vertices)
+            let color
+            if (way.wayTags.get("building") != null) {
+                color = "#d9d0c9"
+            } else if (way.wayTags.get("natural") != null) {
+                console.log(way.wayTags.get("natural"))
+                const naturalValue = way.wayTags.get("natural")
+                if (naturalValue === "wood")
+                    color = "#aadd19e"
+                else if (naturalValue === "water")
                     color = "#aad3df"
             } else if (way.wayTags.get("waterway") != null) {
                 color = "#aad3df"

@@ -4,17 +4,19 @@ const VSHADER_SOURCE =
     '#version 100\n' +
     'attribute vec4 a_Position;\n' +
     'attribute vec4 a_Color;\n' +
+    'varying vec4 v_Color;\n' +
     'void main() {\n' +
     '   gl_Position = a_Position;\n' +
     '   gl_PointSize = 10.0;\n' +
+    '   v_Color = a_Color;\n' +
     '}\n';
 
 // Fragment shader program
 const FSHADER_SOURCE =
     'precision mediump float;\n' +
-    'uniform vec4 u_Color;\n' +
+    'varying vec4 v_Color;\n' +
     'void main() {\n' +
-    '   gl_FragColor = u_Color;\n' +
+    '   gl_FragColor = v_Color;\n' +
     '}\n';
 
 
@@ -23,7 +25,7 @@ class MapWebGLContext {
     canvas
     gl
     a_Position
-    u_Color
+    a_Color
 
     constructor(canvas) {
         // Retrieve <canvas> element
@@ -48,6 +50,9 @@ class MapWebGLContext {
         // Clear canvas
         this.clear("#000000")
 
+        gl.enable(gl.BLEND)
+        gl.blendFunc(gl.SRC_COLOR, gl.ONE_MINUS_DST_ALPHA)
+
         // Create a buffer object
         const vertexBuffer = gl.createBuffer();
         if (!vertexBuffer)
@@ -65,10 +70,9 @@ class MapWebGLContext {
             return -1;
         }
 
-        this.u_Color = gl.getUniformLocation(gl.program, 'u_Color');
-        if (this.u_Color < 0)
-        {
-            console.log('Failed to get the storage location of u_Color');
+        this.a_Color = gl.getAttribLocation(gl.program, 'a_Color');
+        if(this.a_Color < 0) {
+            console.log('Failed to get the storage location of a_Color');
             return -1;
         }
 
@@ -93,10 +97,34 @@ class MapWebGLContext {
         // Assign the buffer object to a_Position variable
         gl.vertexAttribPointer(this.a_Position,  2, gl.FLOAT, false, FSIZE * 2, 0);
         let [r, g, b] = this._hexToRgb(hexColor)
-        gl.uniform4f(this.u_Color, r, g, b, 1.);
+        gl.vertexAttrib4f(this.a_Color, r, g, b, 1.);
         
         // Enable the assignment to a_Position variable
         gl.enableVertexAttribArray(this.a_Position);
+    }
+
+    _initColorVertexBuffers(vertices, hexColors, alpha)
+    {
+        const gl = this.gl
+        // Write date into the buffer object
+        let verticesInfo = new Float32Array(hexColors.length * 6)
+        for (let i = 0; i < hexColors.length; ++i) {
+            let [r, g, b] = this._hexToRgb(hexColors[i])
+            verticesInfo[i * 6    ] = vertices[i * 2    ]
+            verticesInfo[i * 6+ 1] = vertices[i * 2 + 1]
+            verticesInfo[i * 6 + 2] = r
+            verticesInfo[i * 6 + 3] = g
+            verticesInfo[i * 6 + 4] = b
+            verticesInfo[i * 6 + 5] = alpha[i]
+        }
+        gl.bufferData(gl.ARRAY_BUFFER, verticesInfo, gl.STATIC_DRAW);
+
+        const FSIZE = verticesInfo.BYTES_PER_ELEMENT;
+        // Assign the buffer object to a_Position variable
+        gl.vertexAttribPointer(this.a_Position,  2, gl.FLOAT, false, FSIZE * 6, 0);
+        gl.enableVertexAttribArray(this.a_Position);
+        gl.vertexAttribPointer(this.a_Color,  4, gl.FLOAT, false, FSIZE * 6, FSIZE * 2);
+        gl.enableVertexAttribArray(this.a_Color);
     }
 
     _hexToRgb(hex) {
@@ -112,6 +140,13 @@ class MapWebGLContext {
         this._initVertexBuffers(vertices, hexColor);
         // Draw three points
         this.gl.drawArrays(this.gl.TRIANGLE_FAN, 0, vertices.length / 2);
+    }
+
+    drawColorPolygon(vertices, hexColors, alpha) {
+        // Write the positions of vertices to a vertex shader
+        this._initColorVertexBuffers(vertices, hexColors, alpha)
+        // Draw three points
+        this.gl.drawArrays(this.gl.TRIANGLE_FAN, 0, vertices.length / 2)
     }
 
     drawPoints(vertices, hexColor) {
