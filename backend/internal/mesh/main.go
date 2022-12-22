@@ -3,6 +3,7 @@ package mesh
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 
 	"github.com/Fkhalilullin/route-planner/internal/config"
@@ -15,23 +16,23 @@ import (
 
 func GetMesh(w http.ResponseWriter, r *http.Request) {
 	var (
-		resp Request
-		err  error
+		req Request
+		err error
 	)
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewDecoder(r.Body).Decode(&resp)
+	_ = json.NewDecoder(r.Body).Decode(&req)
 
 	elevationService := openelevation.NewService()
 
 	topLeftPoint := models.Point{
-		Lat: resp.TopLeftPoint.Lat,
-		Lon: resp.TopLeftPoint.Lon,
+		Lat: req.TopLeftPoint.Lat,
+		Lon: req.TopLeftPoint.Lon,
 	}
 
 	botRightPoint := models.Point{
-		Lat: resp.BotRightPoint.Lat,
-		Lon: resp.BotRightPoint.Lon,
+		Lat: req.BotRightPoint.Lat,
+		Lon: req.BotRightPoint.Lon,
 	}
 
 	topRightPoint := models.Point{
@@ -67,12 +68,12 @@ func GetMesh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request = Response{
+	var resp = Response{
 		Points: []Points{},
 	}
 	for _, m := range pather.Mesh {
 		for _, mm := range m {
-			request.Points = append(request.Points, Points{
+			resp.Points = append(resp.Points, Points{
 				Lat:       mm.Point.Lat,
 				Lon:       mm.Point.Lon,
 				Elevation: mm.Value,
@@ -80,12 +81,34 @@ func GetMesh(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	request.RowCount = len(pather.Mesh)
-	request.ColumnCount = len(pather.Mesh[0])
+	resp.MinElevation = getMinElevation(resp)
+	resp.MaxElevation = getMaxElevation(resp)
+	resp.RowCount = len(pather.Mesh)
+	resp.ColumnCount = len(pather.Mesh[0])
 
-	err = json.NewEncoder(w).Encode(request)
+	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		log.Printf("[GET/Points] can't encode to json: %w", err)
 		return
 	}
+}
+
+func getMinElevation(response Response) float64 {
+	minElevation := math.MaxFloat64
+	for _, p := range response.Points {
+		if p.Elevation < minElevation {
+			minElevation = p.Elevation
+		}
+	}
+	return minElevation
+}
+
+func getMaxElevation(response Response) float64 {
+	maxElevation := float64(-100000)
+	for _, p := range response.Points {
+		if p.Elevation > maxElevation {
+			maxElevation = p.Elevation
+		}
+	}
+	return maxElevation
 }
