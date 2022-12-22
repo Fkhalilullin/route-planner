@@ -4,7 +4,6 @@ function getMapFragment(minlon, minlat, maxlon, maxlat) {
     const req = new XMLHttpRequest()
     req.open("GET", url, false)
     req.send(null)
-    console.log(req.response)
     return req.responseXML
 }
 
@@ -53,30 +52,26 @@ function getRoute(topLeftPoint, botRightPoint, beginPoint, endPoint, self) {
     req.onload = function() {
         const status = req.status;
         if (status === 200) {
-            console.log(req.response)
-            console.log(req.response.length)
-            console.log('SUCCESS\n', req.response)
+            console.log('Response received (getting route). SUCCESS.\n', req.response)
             self.drawMap(self.lastMapFragment)
 
             let route = req.response
             let coords = new Float32Array(route.length * 2)
             for (let i = 0; i < route.length; ++i) {
-                console.log(route[i].lon, route[i].lat)
                 coords[i * 2    ] = route[i].lon;
                 coords[i * 2 + 1] = route[i].lat;
                 self.drawPoint(route[i].lon, route[i].lat, "#ff0000")
             }
             let canvasCoords = self._convertCoordsToCanvas(coords)
 
-            console.log(canvasCoords)
             let splinePoints = calculateLineSpline(canvasCoords, canvasCoords.length, 3)
-            self.mapWebGLContext.drawPolyline(splinePoints, "#ff0000")
+            self.mapWebGLContext.drawPolyline(splinePoints, config.routeColor)
 
             self.drawPoint(self.startRoute.x, self.startRoute.y, "#ff9090")
             self.drawPoint(self.endRoute.x, self.endRoute.y, "#ff0000")
 
         } else {
-            console.log('ERROR')
+            console.log('Response received (getting route): ERROR. Response status: ', req.status)
         }
     }
 
@@ -86,8 +81,6 @@ function getRoute(topLeftPoint, botRightPoint, beginPoint, endPoint, self) {
         new MapNode(beginPoint.lat, beginPoint.lon),
         new MapNode(endPoint.lat, endPoint.lon)
     ));
-
-    console.log(body)
 
     req.send(body)
     return req.response

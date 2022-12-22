@@ -9,6 +9,8 @@ class MapFragment {
     ways = new Map()
 
     constructor(osmXml) {
+        if (osmXml == null)
+            return
         this.minlat = Number(osmXml.querySelector("bounds").attributes.minlat.value)
         this.minlon = Number(osmXml.querySelector("bounds").attributes.minlon.value)
         this.maxlat = Number(osmXml.querySelector("bounds").attributes.maxlat.value)
@@ -19,6 +21,14 @@ class MapFragment {
         osmXml
             .querySelectorAll("way")
             .forEach(wayXmlTag => this.addWay(wayXmlTag))
+    }
+
+    withCoords(minLon, minLat, maxLon, maxLat) {
+        this.minlon = minLon
+        this.minlat = minLat
+        this.maxlon = maxLon
+        this.maxlat = maxLat
+        return this
     }
 
     addNode(nodeXmlTag) {

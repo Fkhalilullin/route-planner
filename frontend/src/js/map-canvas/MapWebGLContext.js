@@ -51,7 +51,6 @@ class MapWebGLContext {
         this.clear("#000000")
 
         gl.enable(gl.BLEND)
-        gl.blendFunc(gl.SRC_COLOR, gl.ONE_MINUS_DST_ALPHA)
 
         // Create a buffer object
         const vertexBuffer = gl.createBuffer();
@@ -111,7 +110,7 @@ class MapWebGLContext {
         for (let i = 0; i < hexColors.length; ++i) {
             let [r, g, b] = this._hexToRgb(hexColors[i])
             verticesInfo[i * 6    ] = vertices[i * 2    ]
-            verticesInfo[i * 6+ 1] = vertices[i * 2 + 1]
+            verticesInfo[i * 6 + 1] = vertices[i * 2 + 1]
             verticesInfo[i * 6 + 2] = r
             verticesInfo[i * 6 + 3] = g
             verticesInfo[i * 6 + 4] = b
@@ -121,25 +120,36 @@ class MapWebGLContext {
 
         const FSIZE = verticesInfo.BYTES_PER_ELEMENT;
         // Assign the buffer object to a_Position variable
-        gl.vertexAttribPointer(this.a_Position,  2, gl.FLOAT, false, FSIZE * 6, 0);
+        gl.vertexAttribPointer(this.a_Position, 2, gl.FLOAT, false, FSIZE * 6, 0);
+        gl.vertexAttribPointer(this.a_Color, 4, gl.FLOAT, false, FSIZE * 6, FSIZE * 2);
+
         gl.enableVertexAttribArray(this.a_Position);
-        gl.vertexAttribPointer(this.a_Color,  4, gl.FLOAT, false, FSIZE * 6, FSIZE * 2);
         gl.enableVertexAttribArray(this.a_Color);
     }
 
     _hexToRgb(hex) {
-        var bigint = parseInt(hex.substring(1), 16)
-        var r = ((bigint >> 16) & 255) / 255
-        var g = ((bigint >> 8) & 255) / 255
-        var b = (bigint & 255) / 255
+        const bigint = parseInt(hex.substring(1), 16);
+        const r = ((bigint >> 16) & 255) / 255;
+        const g = ((bigint >> 8) & 255) / 255;
+        const b = (bigint & 255) / 255;
         return [r, g, b]
     }
 
     drawPolygon(vertices, hexColor) {
+        let colorArray = this._createArray(vertices.length / 2, hexColor)
+        let alphaArray = this._createArray(vertices.length / 2, 1.)
         // Write the positions of vertices to a vertex shader
-        this._initVertexBuffers(vertices, hexColor);
+        this._initColorVertexBuffers(vertices, colorArray, alphaArray)
         // Draw three points
         this.gl.drawArrays(this.gl.TRIANGLE_FAN, 0, vertices.length / 2);
+    }
+
+    _createArray(length, value) {
+        let array = Array(length)
+        for (let i = 0; i < length; ++i) {
+            array[i] = value
+        }
+        return array
     }
 
     drawColorPolygon(vertices, hexColors, alpha) {
@@ -157,8 +167,10 @@ class MapWebGLContext {
     }
 
     drawPolyline(vertices, hexColor) {
+        let colorArray = this._createArray(vertices.length / 2, hexColor)
+        let alphaArray = this._createArray(vertices.length / 2, 1.)
         // Write the positions of vertices to a vertex shader
-        this._initVertexBuffers(vertices, hexColor);
+        this._initColorVertexBuffers(vertices, colorArray, alphaArray)
         // Draw three points
         this.gl.drawArrays(this.gl.LINE_STRIP, 0, vertices.length / 2);
     }

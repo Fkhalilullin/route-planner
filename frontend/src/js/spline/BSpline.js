@@ -48,12 +48,6 @@ function calculateLineSpline(points, countSplinePoints, splineOrder, ) {
 
     let pointsCtr = []
 
-    // if (p >= pointsCtr.length)
-    //     return ;
-
-    console.log(pointsCtr.length)
-    console.log(points.length)
-
     for (let i = 0; i < points.length / 2; ++i) {
         pointsCtr.push(new Point(points[i * 2], points[i * 2 + 1]))
     }

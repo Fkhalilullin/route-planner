@@ -12,7 +12,7 @@ class MapCanvas {
         this.mapWebGLContext = new MapWebGLContext(this.canvas)
     }
 
-    drawMap(mapFragment) {
+        drawMap(mapFragment) {
         this.lastMapFragment = mapFragment
         // this.mapWebGLContext.clear("#f2efe9")
         mapFragment.ways.forEach(way => {
@@ -23,12 +23,12 @@ class MapCanvas {
             } else if (way.wayTags.get("natural") != null) {
                 console.log(way.wayTags.get("natural"))
                 const naturalValue = way.wayTags.get("natural")
-                if (naturalValue == "wood")
-                    color = "#aadd19e"
-                else if (naturalValue == "water")
-                    color = "#aad3df"
+                if (naturalValue === "wood")
+                    color = "#aadd19"
+                else if (naturalValue === "water")
+                    color = config.waterColor
             } else if (way.wayTags.get("waterway") != null) {
-                color = "#aad3df"
+                color = config.waterColor
             }
             if (color != null) {
                 this.mapWebGLContext.drawPolygon(canvasCoords, color)
@@ -49,7 +49,7 @@ class MapCanvas {
         return (i * columnCount + j)
     }
 
-    gradient(value, minValue, maxValue, downColor, upColor) {
+    _gradient(value, minValue, maxValue, downColor, upColor) {
         let coef = (value - minValue) / (maxValue - minValue)
         let [dr, dg, db] = this.mapWebGLContext._hexToRgb(downColor)
         let [ur, ug, ub] = this.mapWebGLContext._hexToRgb(upColor)
@@ -57,6 +57,10 @@ class MapCanvas {
         let g = (ug - dg) * coef + dg
         let b = (ub - db) * coef + db
         return this._rgbToHex(r, g, b)
+    }
+
+    _elevationGradient(value, minValue, maxValue) {
+        return this._gradient(value, minValue, maxValue, config.downColor, config.upColor)
     }
 
     drawElevations(elevationMesh) {
@@ -76,18 +80,12 @@ class MapCanvas {
                 geographicCoords[5] = point_2.lat
                 geographicCoords[6] = point_3.lon
                 geographicCoords[7] = point_3.lat
-                // geographicCoords[3] = elevationMesh.points[this._indexesFrom2dTo1d(i + 1, j, elevationMesh.rowCount)].elevation
-                // geographicCoords[4] = elevationMesh.points[this._indexesFrom2dTo1d(i, j + 1, elevationMesh.rowCount)].elevation
-                // geographicCoords[5] = elevationMesh.points[this._indexesFrom2dTo1d(i + 1, j + 1, elevationMesh.rowCount)].elevation
-
-                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
-                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
-                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
-                // let elevation0 = elevationMesh.points[this._indexesFrom2dTo1d(i, j, elevationMesh.columnCount)].elevation
-                let hexColor_0 = this.gradient(point_0.elevation, 480, 540, "#09ff00", "#800000")
-                let hexColor_1 = this.gradient(point_1.elevation, 480, 540, "#09ff00", "#800000")
-                let hexColor_2 = this.gradient(point_2.elevation, 480, 540, "#09ff00", "#800000")
-                let hexColor_3 = this.gradient(point_3.elevation, 480, 540, "#09ff00", "#800000")
+                const minElevation = elevationMesh.minElevation
+                const maxElevation = elevationMesh.maxElevation
+                const hexColor_1 = this._elevationGradient(point_1.elevation, minElevation, maxElevation)
+                const hexColor_2 = this._elevationGradient(point_2.elevation, minElevation, maxElevation)
+                const hexColor_0 = this._elevationGradient(point_0.elevation, minElevation, maxElevation)
+                const hexColor_3 = this._elevationGradient(point_3.elevation, minElevation, maxElevation)
                 const hexColors = [
                     hexColor_0,
                     hexColor_1,
@@ -101,30 +99,10 @@ class MapCanvas {
                     alpha,
                     alpha
                 ]
-                // this.mapWebGLContext.drawPolygon(this._convertCoordsToCanvas(geographicCoords), hexColor)
                 let vertices = this._convertCoordsToCanvas(geographicCoords)
                 this.mapWebGLContext.drawColorPolygon(vertices, hexColors, alphaArray)
             }
         }
-        this.lastMapFragment.ways.forEach(way => {
-            let canvasCoords = this._convertCoordsToCanvas(way.vertices)
-            let color
-            if (way.wayTags.get("building") != null) {
-                color = "#d9d0c9"
-            } else if (way.wayTags.get("natural") != null) {
-                console.log(way.wayTags.get("natural"))
-                const naturalValue = way.wayTags.get("natural")
-                if (naturalValue === "wood")
-                    color = "#aadd19e"
-                else if (naturalValue === "water")
-                    color = "#aad3df"
-            } else if (way.wayTags.get("waterway") != null) {
-                color = "#aad3df"
-            }
-            if (color != null) {
-                this.mapWebGLContext.drawPolygon(canvasCoords, color)
-            }
-        })
     }
 
     _convertCoordsToCanvas(geographicCoords) {
@@ -149,7 +127,7 @@ class MapCanvas {
     }
 
     drawRoute(vertices) {
-        this.mapWebGLContext.drawPolyline(vertices, "#ff0000")
+        this.mapWebGLContext.drawPolyline(vertices, config.routeColor)
     }
 
     drawPoint(canvasX, canvasY, color) {
@@ -165,16 +143,16 @@ class MapCanvas {
     }
 
     enableMouseEvents() {
-        var mouseDown = false;
-        var lastX = -1., lastY = -1.;   // Last position of the mouse
-        var clickX = -1., clickY = -1.;   // Last position of the mouse
+        let mouseDown = false;
+        let lastX = -1., lastY = -1.;   // Last position of the mouse
+        let clickX = -1., clickY = -1.;   // Last position of the mouse
       
         let mapCanvas = this
         this.canvas.onmousedown = function(ev) {   // Mouse is pressed
             clickX = ev.clientX, clickY = ev.clientY;
             
             // Start dragging if a mouse is in <canvas>
-            var rect = ev.target.getBoundingClientRect();
+            const rect = ev.target.getBoundingClientRect();
             if (rect.left <= clickX && clickX < rect.right && rect.top <= clickY && clickY < rect.bottom) {
                 lastX = clickX; lastY = clickY;
                 mouseDown = true;
@@ -186,7 +164,7 @@ class MapCanvas {
             self.drawMap(self.lastMapFragment)
             const x = ev.clientX, y = ev.clientY;
             mouseDown = false
-            if (lastX - clickX == 0. && lastY - clickY == 0.) {
+            if (lastX - clickX === 0. && lastY - clickY === 0.) {
                 console.log("click")
                 const rect = ev.target.getBoundingClientRect();
                 const canvasX = ((x - rect.left) - self.canvas.width/2.)/(self.canvas.width/2.);
