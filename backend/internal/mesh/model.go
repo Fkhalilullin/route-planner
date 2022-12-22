@@ -12,9 +12,11 @@ type Request struct {
 }
 
 type Response struct {
-	RowCount    int      `json:"rowCount"`
-	ColumnCount int      `json:"columnCount"`
-	Points      []Points `json:"points"`
+	MinElevation float64  `json:"minElevation"`
+	MaxElevation float64  `json:"maxElevation"`
+	RowCount     int      `json:"rowCount"`
+	ColumnCount  int      `json:"columnCount"`
+	Points       []Points `json:"points"`
 }
 
 type Points struct {
