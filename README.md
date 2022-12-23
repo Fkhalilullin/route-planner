@@ -20,6 +20,13 @@ After starting the server, open the file in the browser:
 cd route-planner/frontend/src/html/index.htlm
 ```
 
+## Elevation API
+The [open-elevation](https://open-elevation.com/) api is used to calculate heights. At the moment, the free api does not work. Therefore, before launching the project, it is necessary to deploy the open-elevation server for correct operation
+
+You can see how to do this in the [documentation](https://github.com/Jorl17/open-elevation/blob/master/docs/host-your-own.md)
+
+connecting between the free api and the local api you can change the value of the `UseLocalHost = true` field in the `config.go` file
+
 ## Examples:
 
 ![example1](src/example1.png)
