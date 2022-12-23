@@ -27,7 +27,7 @@ function main() {
     // canvas.drawMap(canvas.lastMapFragment)
 
 
-    // canvas.enableMouseEvents()
+    canvas.enableMouseEvents()
     
 }
 

@@ -1,10 +1,9 @@
 
 class RouteRq {
 
-    constructor(topLeftPoint, botRightPoint, beginPoint, endPoint) {
+    constructor(topLeftPoint, botRightPoint, paths) {
         this.topLeftPoint = topLeftPoint
         this.botRightPoint = botRightPoint
-        this.beginPoint = beginPoint
-        this.endPoint = endPoint
+        this.paths = paths
     }
 }

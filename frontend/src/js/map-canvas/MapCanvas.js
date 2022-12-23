@@ -4,15 +4,20 @@ class MapCanvas {
     canvas
     mapWebGLContext
     lastMapFragment
-    startRoute
-    endRoute
+    lastElevationMesh
+    points
 
     constructor() {
         this.canvas = document.getElementById('webgl');
         this.mapWebGLContext = new MapWebGLContext(this.canvas)
+        this.points = []
     }
 
-        drawMap(mapFragment) {
+    drawLastMap() {
+        this.drawMap(this.lastMapFragment)
+    }
+
+    drawMap(mapFragment) {
         this.lastMapFragment = mapFragment
         // this.mapWebGLContext.clear("#f2efe9")
         mapFragment.ways.forEach(way => {
@@ -63,7 +68,12 @@ class MapCanvas {
         return this._gradient(value, minValue, maxValue, config.downColor, config.upColor)
     }
 
+    drawLastElevations() {
+        this.drawElevations(this.lastElevationMesh)
+    }
+
     drawElevations(elevationMesh) {
+        this.lastElevationMesh = elevationMesh
         for (let i = 0; i < elevationMesh.rowCount - 1; ++i) {
             for (let j = 0; j < elevationMesh.columnCount - 1; ++j) {
 
@@ -161,7 +171,12 @@ class MapCanvas {
 
         let self = this
         this.canvas.onmouseup = function(ev) {
-            self.drawMap(self.lastMapFragment)
+            // self.drawMap(self.lastMapFragment)
+            const minlon = mapCanvas.lastMapFragment.minlon
+            const minlat = mapCanvas.lastMapFragment.minlat
+            const maxlon = mapCanvas.lastMapFragment.maxlon
+            const maxlat = mapCanvas.lastMapFragment.maxlat
+
             const x = ev.clientX, y = ev.clientY;
             mouseDown = false
             if (lastX - clickX === 0. && lastY - clickY === 0.) {
@@ -170,30 +185,28 @@ class MapCanvas {
                 const canvasX = ((x - rect.left) - self.canvas.width/2.)/(self.canvas.width/2.);
                 const canvasY = (self.canvas.height/2. - (y - rect.top))/(self.canvas.height/2.);
 
-                const newNode = new CanvasNode(canvasX, canvasY)
-                if (self.startRoute == null)
-                    self.startRoute = newNode
-                else if (self.endRoute == null)
-                    self.endRoute = newNode
-                else {
-                    self.startRoute = newNode
-                    self.endRoute = null
+                let geoPoint = self._convertCanvasToGeographic(new CanvasNode(canvasX, canvasY))
+                let nearestPoint = self.getNearestPoint(geoPoint.lon, geoPoint.lat)
+                self.points.push(new MapNode(nearestPoint.lat, nearestPoint.lon))
+
+                mapCanvas.drawLastElevations()
+                mapCanvas.drawLastMap()
+                for (const point of self.points) {
+                    let canvasNearestPoint = self._convertCoordsToCanvas(
+                        new Float32Array([point.lon, point.lat])
+                    )
+                    self.drawPoint(canvasNearestPoint[0], canvasNearestPoint[1], "#ff9090")
                 }
-
-                self.drawPoint(self.startRoute.x, self.startRoute.y, "#ff9090")
-                if (self.endRoute != null) {
-                    self.drawPoint(self.endRoute.x, self.endRoute.y, "#ff0000")
-
-                    let topLeftPoint = new MapNode(self.lastMapFragment.minlat, self.lastMapFragment.minlon)
-                    let botRightPoint = new MapNode(self.lastMapFragment.maxlat, self.lastMapFragment.maxlon)
-                    let beginPoint = self._convertCanvasToGeographic(self.startRoute)
-                    let endPoint = self._convertCanvasToGeographic(self.endRoute)
-
-                    let route = getRoute(topLeftPoint, botRightPoint, beginPoint, endPoint, self)
-
-                }
-
-                // self.drawPoint(canvasX, canvasY, "#ff0000")
+                if (self.points.length > 1)
+                    getRoute(minlon, minlat, maxlon, maxlat, self.points, self)
+            } else {
+                getMesh(
+                    minlon,
+                    minlat,
+                    maxlon,
+                    maxlat,
+                    mapCanvas
+                )
             }
             document.body.style.cursor = 'default';
         }; // Mouse is released
@@ -209,18 +222,48 @@ class MapCanvas {
                 const mapDy = (mapCanvas.lastMapFragment.maxlat - mapCanvas.lastMapFragment.minlat) / mapCanvas.canvas.height * dy
                 const mapDx = (mapCanvas.lastMapFragment.maxlon - mapCanvas.lastMapFragment.minlon) / mapCanvas.canvas.width * dx
         
-                const minlon = Number(mapCanvas.lastMapFragment.minlon) - mapDx
-                const minlat = Number(mapCanvas.lastMapFragment.minlat) + mapDy
-                const maxlon = Number(mapCanvas.lastMapFragment.maxlon) - mapDx
-                const maxlat = Number(mapCanvas.lastMapFragment.maxlat) + mapDy
+                const minLon = Number(mapCanvas.lastMapFragment.minlon) - mapDx
+                const minLat = Number(mapCanvas.lastMapFragment.minlat) + mapDy
+                const maxLon = Number(mapCanvas.lastMapFragment.maxlon) - mapDx
+                const maxLat = Number(mapCanvas.lastMapFragment.maxlat) + mapDy
 
-                const responseXml = getMapFragment(minlon, minlat, maxlon, maxlat)
+                self.points = []
+
+                const responseXml = getMapFragment(minLon, minLat, maxLon, maxLat)
                 const mapFragment = new MapFragment(responseXml)
                 mapCanvas.drawMap(mapFragment)
             }
             lastX = x, lastY = y;
         };
 
+    }
+
+    getNearestPoint(lon, lat) {
+        let nodes = this.lastElevationMesh.points
+        let step = Math.abs(this.lastElevationMesh.points[1].lon - this.lastElevationMesh.points[0].lon)
+        let half_step = step / 2.
+
+        let row = Math.floor((lat - nodes[0].lat) / step)
+        let column = Math.floor((lon - nodes[0].lon) / step)
+
+        let pointIndex = this._indexesFrom2dTo1d(row, column, this.lastElevationMesh.columnCount)
+        let point = nodes[pointIndex]
+        let delta_lon = lon - point.lon
+        let delta_lat = lat - point.lat
+
+        if (0. <= delta_lon && delta_lon <= half_step) {
+            if (0. <= delta_lat && delta_lat <= half_step)
+                return nodes[this._indexesFrom2dTo1d(row, column, this.lastElevationMesh.columnCount)]
+            if (half_step < delta_lat && delta_lat <= step)
+                return nodes[this._indexesFrom2dTo1d(row + 1, column, this.lastElevationMesh.columnCount)]
+        }
+        if (half_step < delta_lon && delta_lon <= step) {
+            if (0. <= delta_lat && delta_lat <= half_step)
+                return nodes[this._indexesFrom2dTo1d(row, column + 1, this.lastElevationMesh.columnCount)]
+            if (half_step < delta_lat && delta_lat <= step)
+                return nodes[this._indexesFrom2dTo1d(row + 1, column + 1, this.lastElevationMesh.columnCount)]
+        }
+        return nodes[this._indexesFrom2dTo1d(row, column, this.lastElevationMesh.columnCount)]
     }
 
 }

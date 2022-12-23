@@ -2,7 +2,7 @@ package config
 
 const (
 	// Step steps between route
-	Step = 0.0007
+	Step = 0.00055
 
 	UseLocalHost = true
 

@@ -160,8 +160,10 @@ class MapWebGLContext {
     }
 
     drawPoints(vertices, hexColor) {
+        let colorArray = this._createArray(1, hexColor)
+        let alphaArray = this._createArray(1, 1.)
         // Write the positions of vertices to a vertex shader
-        this._initVertexBuffers(vertices, hexColor);
+        this._initColorVertexBuffers(vertices, colorArray, alphaArray)
         // Draw three points
         this.gl.drawArrays(this.gl.POINTS, 0, vertices.length / 2);
     }
