@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type ElevationProvider interface {
@@ -51,6 +52,7 @@ func (s *service) GetElevationPoints(coordinates pather.Coordinates) (pather.Coo
 		reqByte, err := json.Marshal(req)
 		reader := strings.NewReader(string(reqByte))
 
+		time.Sleep(time.Second / 4)
 		res, err := http.Post(endpoint, "application/json", reader)
 		if err != nil {
 			return nil, fmt.Errorf("opentopodata.GetElevationPoints failed http GET: %w", err)

@@ -4,7 +4,7 @@ const (
 	// Step steps between route
 	Step = 0.00055
 
-	UseLocalHost = true
+	UseLocalHost = false
 
 	TypeLand   = "land"
 	TypeWater  = "water"
